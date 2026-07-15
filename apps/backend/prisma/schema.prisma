@@ -1,0 +1,143 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum Goal {
+  LOSE_WEIGHT
+  MAINTAIN
+  GAIN_WEIGHT
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+// ─── Models ───────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  profile       Profile?
+  refreshTokens RefreshToken[]
+  mealAnalyses  MealAnalysis[]
+  mealLogs      MealLog[]
+
+  @@map("users")
+}
+
+model Profile {
+  id               String   @id @default(cuid())
+  userId           String   @unique @map("user_id")
+  name             String   @db.VarChar(100)
+  dateOfBirth      DateTime @map("date_of_birth") @db.Date
+  gender           Gender
+  heightCm         Int      @map("height_cm") @db.SmallInt
+  weightKg         Decimal  @map("weight_kg") @db.Decimal(5, 2)
+  goal             Goal
+  dailyCalorieGoal Int      @map("daily_calorie_goal") @db.SmallInt
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model MealAnalysis {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  storageKey      String   @map("storage_key") @db.VarChar(500)
+  foodName        String   @map("food_name") @db.VarChar(255)
+  portionSize     String   @map("portion_size") @db.VarChar(100)
+  calories        Decimal  @db.Decimal(7, 2)
+  protein         Decimal  @db.Decimal(6, 2)
+  fat             Decimal  @db.Decimal(6, 2)
+  carbs           Decimal  @db.Decimal(6, 2)
+  confidenceScore Decimal  @map("confidence_score") @db.Decimal(3, 2)
+  isConfirmed     Boolean  @default(false) @map("is_confirmed")
+  ingredients     String[]
+  healthAdvice    String?  @map("health_advice") @db.Text
+  portionBreakdown String?  @map("portion_breakdown") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealLog MealLog?
+
+  @@index([userId])
+  @@index([userId, isConfirmed])
+  @@map("meal_analyses")
+}
+
+model MealLog {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  analysisId  String?  @unique @map("analysis_id")
+  mealType    MealType @map("meal_type")
+  foodName    String   @map("food_name") @db.VarChar(255)
+  portionSize String   @map("portion_size") @db.VarChar(100)
+  calories    Decimal  @db.Decimal(7, 2)
+  protein     Decimal  @db.Decimal(6, 2)
+  fat         Decimal  @db.Decimal(6, 2)
+  carbs       Decimal  @db.Decimal(6, 2)
+  imageUrl    String?  @map("image_url") @db.Text
+  ingredients String[]
+  healthAdvice String?  @map("health_advice") @db.Text
+  portionBreakdown String?  @map("portion_breakdown") @db.Text
+  loggedAt    DateTime @default(now()) @map("logged_at") @db.Timestamptz
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysis MealAnalysis? @relation(fields: [analysisId], references: [id])
+
+  @@index([userId, loggedAt(sort: Desc)])
+  @@index([userId, mealType])
+  @@map("meal_logs")
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  email     String?  @db.VarChar(255)
+  message   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("feedbacks")
+}

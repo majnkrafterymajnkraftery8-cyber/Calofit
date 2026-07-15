@@ -1,0 +1,63 @@
+import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // Global prefix
+  app.setGlobalPrefix('api/v1');
+
+  // Security Middlewares
+  app.use(helmet());
+  app.use(cookieParser());
+
+  // CORS
+  const corsOrigins = process.env.CORS_ORIGINS || 'http://localhost:3001';
+  app.enableCors({
+    origin: corsOrigins.split(','),
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  });
+
+  // Global Exception Filter
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // Global Validation Pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+
+  // Swagger Documentation
+  if (process.env.NODE_ENV !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('CaloFit API')
+      .setDescription('CaloFit — AI asosida ovqatlanishni kuzatuvchi ilova')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addTag('auth', 'Autentifikatsiya')
+      .addTag('profile', 'Foydalanuvchi profili')
+      .addTag('meals', 'Ovqat logi va AI tahlil')
+      .addTag('dashboard', 'Kunlik statistika')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: { persistAuthorization: true },
+    });
+  }
+
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`Application is running on: http://localhost:${port}/api/v1`);
+}
+bootstrap();
