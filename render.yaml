@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: calofit-backend
+    env: docker
+    dockerfilePath: Dockerfile
+    dockerContext: apps/backend
+    plan: free
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: STORAGE_PROVIDER
+        value: supabase
+      - key: SUPABASE_URL
+        value: https://cqrckyhucwmmtfqecauh.supabase.co
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: food-images
+      - key: CORS_ORIGINS
+        value: '*'
