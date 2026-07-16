@@ -6,9 +6,12 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/routing';
 import { MessageSquare, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 export default function SupportPage() {
   const t = useTranslations('support');
+  const params = useParams();
+  const locale = (params?.locale as string) || 'uz';
   const router = useRouter();
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
@@ -18,7 +21,13 @@ export default function SupportPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) {
-      toast.error('Iltimos, xabarni kiriting');
+      toast.error(
+        locale === 'ru' 
+          ? 'Пожалуйста, введите сообщение' 
+          : locale === 'en' 
+          ? 'Please enter a message' 
+          : 'Iltimos, xabarni kiriting'
+      );
       return;
     }
 
@@ -43,7 +52,7 @@ export default function SupportPage() {
           className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
         >
           <ArrowLeft size={16} />
-          Back to Dashboard
+          {locale === 'ru' ? 'Вернуться в дашборд' : locale === 'en' ? 'Back to Dashboard' : 'Dashboardga qaytish'}
         </button>
 
         {/* Form Card */}
@@ -58,13 +67,17 @@ export default function SupportPage() {
               </div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('success')}</h2>
               <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs mx-auto">
-                Admin xabaringizni oldi va tez orada ko'rib chiqadi.
+                {locale === 'ru' 
+                  ? 'Администратор получил ваше сообщение и скоро рассмотрит его.' 
+                  : locale === 'en' 
+                  ? 'The administrator received your message and will review it soon.' 
+                  : "Admin xabaringizni oldi va tez orada ko'rib chiqadi."}
               </p>
               <button
                 onClick={() => router.push('/dashboard')}
                 className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl shadow-lg transition-all"
               >
-                Go Dashboard
+                {locale === 'ru' ? 'В дашборд' : locale === 'en' ? 'Go to Dashboard' : 'Dashboardga o\'tish'}
               </button>
             </div>
           ) : (

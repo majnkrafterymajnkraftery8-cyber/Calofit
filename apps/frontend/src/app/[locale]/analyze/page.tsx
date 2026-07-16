@@ -74,7 +74,13 @@ export default function AnalyzePage() {
       });
     },
     onError: () => {
-      toast.error("Tahlilda xatolik yuz berdi");
+      toast.error(
+        locale === 'ru' 
+          ? 'Ошибка при анализе' 
+          : locale === 'en' 
+          ? 'Analysis failed' 
+          : 'Tahlilda xatolik yuz berdi'
+      );
     },
   });
 
@@ -93,7 +99,13 @@ export default function AnalyzePage() {
       router.push('/dashboard');
     },
     onError: () => {
-      toast.error("Saqlashda xatolik");
+      toast.error(
+        locale === 'ru' 
+          ? 'Ошибка при сохранении' 
+          : locale === 'en' 
+          ? 'Failed to save' 
+          : 'Saqlashda xatolik'
+      );
     },
   });
 
@@ -317,11 +329,17 @@ export default function AnalyzePage() {
                 <Upload size={28} className="text-emerald-600 dark:text-emerald-400" />
               </div>
               <h3 className="text-base font-black text-gray-900 dark:text-white">
-                {locale === 'ru' ? 'Ожидание анализа блюда' : 'Taom tahlilini kutish'}
+                {locale === 'ru' 
+                  ? 'Ожидание анализа блюда' 
+                  : locale === 'en' 
+                  ? 'Awaiting Meal Analysis' 
+                  : 'Taom tahlilini kutish'}
               </h3>
               <p className="text-xs text-gray-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
                 {locale === 'ru' 
                   ? 'Пожалуйста, сделайте фото или загрузите изображение вашего блюда слева. Наш искусственный интеллект мгновенно разберет его состав!' 
+                  : locale === 'en' 
+                  ? 'Please take a photo or upload an image of your meal on the left. Our AI will analyze its composition instantly!'
                   : 'Iltimos, chap tomondan taom rasmini yuklang yoki kameraga oling. Sun\'iy intellektimiz taom tarkibini tahlil qilib beradi!'}
               </p>
             </div>

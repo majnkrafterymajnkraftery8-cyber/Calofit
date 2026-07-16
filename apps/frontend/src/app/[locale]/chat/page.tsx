@@ -125,7 +125,13 @@ export default function ChatPage({ params }: { params: { locale: string } }) {
 
       setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
     } catch {
-      toast.error(locale === 'ru' ? 'Ошибка связи с ИИ' : 'AI bilan bog\'lanishda xatolik yuz berdi');
+      toast.error(
+        locale === 'ru' 
+          ? 'Ошибка связи с ИИ' 
+          : locale === 'en' 
+          ? 'AI connection error occurred' 
+          : 'AI bilan bog\'lanishda xatolik yuz berdi'
+      );
       setMessages((prev) => prev.slice(0, -1));
       setInput(userMessage);
     } finally {
@@ -140,7 +146,13 @@ export default function ChatPage({ params }: { params: { locale: string } }) {
         content: WELCOME_MESSAGES[locale] || WELCOME_MESSAGES.uz,
       },
     ]);
-    toast.success(locale === 'ru' ? 'История очищена' : 'Tarix tozalandi');
+    toast.success(
+      locale === 'ru' 
+        ? 'История очищена' 
+        : locale === 'en' 
+        ? 'Chat history cleared' 
+        : 'Tarix tozalandi'
+    );
   };
 
   const handleLocaleChange = (newLocale: 'uz' | 'ru' | 'en') => {
@@ -165,7 +177,9 @@ export default function ChatPage({ params }: { params: { locale: string } }) {
           </div>
           <div>
             <h2 className="font-bold text-gray-900 dark:text-white text-sm">CaloFit AI</h2>
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold tracking-wider uppercase">Dietolog-Konsultant</p>
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold tracking-wider uppercase">
+              {locale === 'ru' ? 'Диетолог-Консультант' : locale === 'en' ? 'Dietician Consultant' : 'Dietolog-Konsultant'}
+            </p>
           </div>
         </div>
 
@@ -178,13 +192,15 @@ export default function ChatPage({ params }: { params: { locale: string } }) {
             <p className="text-xs text-emerald-900/80 dark:text-slate-300 leading-relaxed font-medium">
               {locale === 'ru' 
                 ? 'Задавайте любые вопросы по рецептам, КБЖУ, снижению веса или тренировкам. Бот запоминает историю текущего разговора!' 
-                : 'Ask any questions about recipes, calories, weight loss, or workouts. The bot remembers the history of the current conversation!'}
+                : locale === 'en' 
+                ? 'Ask any questions about recipes, calories, weight loss, or workouts. The bot remembers the history of the current conversation!'
+                : 'Reseptlar, kkal, vazn tashlash yoki mashg‘ulotlar haqida istalgan savolni so‘rang. Bot joriy suhbat tarixini eslab qoladi!'}
             </p>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-900/40 border border-gray-100 dark:border-slate-800/80">
             <h3 className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-              {locale === 'ru' ? 'Примеры вопросов' : 'Savol namunalari'}
+              {locale === 'ru' ? 'Примеры вопросов' : locale === 'en' ? 'Example Questions' : 'Savol namunalari'}
             </h3>
             <div className="space-y-2">
               {currentSuggestions.slice(0, 2).map((sug, i) => (
@@ -207,7 +223,7 @@ export default function ChatPage({ params }: { params: { locale: string } }) {
             className="w-full py-3 rounded-xl bg-gray-100 hover:bg-gray-200/80 dark:bg-slate-900 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300 font-bold text-xs transition-all border border-gray-200/20 dark:border-slate-800/50 flex items-center justify-center gap-2"
           >
             <ArrowLeft size={14} />
-            {locale === 'ru' ? 'Вернуться в дашборд' : 'Dashboardga qaytish'}
+            {locale === 'ru' ? 'Вернуться в дашборд' : locale === 'en' ? 'Back to Dashboard' : 'Dashboardga qaytish'}
           </button>
         </div>
       </aside>
