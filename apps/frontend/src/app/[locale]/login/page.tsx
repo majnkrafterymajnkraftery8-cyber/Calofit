@@ -17,16 +17,23 @@ export default function LoginPage() {
   const locale = (params?.locale as string) || 'uz';
   const { login, setUser, user } = useAuth();
   
-  // Auto redirect if already logged in
+  // Instant direct redirect if session exists in localStorage to prevent loading flash
   useEffect(() => {
-    if (user) {
-      if (user.hasProfile) {
-        router.push('/dashboard');
-      } else {
-        router.push('/profile');
+    const token = localStorage.getItem('accessToken');
+    const storedUser = localStorage.getItem('user');
+    if (token && storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        if (parsed.hasProfile) {
+          window.location.href = `/${locale}/dashboard`;
+        } else {
+          window.location.href = `/${locale}/profile`;
+        }
+      } catch (e) {
+        // Ignore
       }
     }
-  }, [user, router]);
+  }, [locale]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
