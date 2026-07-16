@@ -50,9 +50,9 @@ export default function LoginPage() {
           
           success = true;
           if (data.user.hasProfile) {
-            router.push('/dashboard');
+            window.location.href = `/${locale}/dashboard`;
           } else {
-            router.push('/profile');
+            window.location.href = `/${locale}/profile`;
           }
         } catch (err: any) {
           console.error('[Google OAuth Debug] Exchange failed:', err);
