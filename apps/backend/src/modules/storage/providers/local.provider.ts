@@ -19,13 +19,16 @@ export class LocalStorageProvider extends StorageProvider {
     const corsOrigins = this.config.get<string>('CORS_ORIGINS', 'http://localhost:3001');
     this.baseUrl = corsOrigins.split(',')[0];
 
-    try {
-      if (!fs.existsSync(this.uploadDir)) {
-        fs.mkdirSync(this.uploadDir, { recursive: true });
-        this.logger.log(`Created local upload directory: ${this.uploadDir}`);
+    const storageProvider = this.config.get<string>('STORAGE_PROVIDER', 'supabase');
+    if (storageProvider === 'local') {
+      try {
+        if (!fs.existsSync(this.uploadDir)) {
+          fs.mkdirSync(this.uploadDir, { recursive: true });
+          this.logger.log(`Created local upload directory: ${this.uploadDir}`);
+        }
+      } catch (err) {
+        this.logger.error('Failed to create local upload directory', err);
       }
-    } catch (err) {
-      this.logger.error('Failed to create local upload directory', err);
     }
   }
 
