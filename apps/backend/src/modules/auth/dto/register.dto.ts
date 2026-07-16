@@ -5,6 +5,7 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  IsOptional,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -26,4 +27,9 @@ export class RegisterDto {
     message: "Parol: katta harf, kichik harf va raqam bo'lishi shart",
   })
   password: string;
+
+  @ApiProperty({ example: 'uz', required: false })
+  @IsString()
+  @IsOptional()
+  locale?: string;
 }

@@ -39,11 +39,16 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
+  isEmailVerified            Boolean   @default(false) @map("is_email_verified")
+  verificationToken          String?   @map("verification_token") @db.VarChar(255)
+  verificationTokenExpiresAt DateTime? @map("verification_token_expires_at") @db.Timestamptz
+
   profile       Profile?
   refreshTokens RefreshToken[]
   mealAnalyses  MealAnalysis[]
   mealLogs      MealLog[]
 
+  @@index([verificationToken])
   @@map("users")
 }
 

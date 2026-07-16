@@ -1,28 +1,113 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/providers/auth-provider';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { toast } from 'sonner';
+import { useSearchParams, useParams } from 'next/navigation';
+import { api } from '@/lib/api';
+import { Mail, RefreshCw, AlertTriangle, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const t = useTranslations('auth');
-  const { login } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'uz';
+  const { login, setUser } = useAuth();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Verification states
+  const [showVerifyPrompt, setShowVerifyPrompt] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+
+  // Handle Google OAuth callback code from URL query parameters
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      const exchangeCode = async () => {
+        setIsLoading(true);
+        try {
+          const redirectUri = `${window.location.origin}/${locale}/login`;
+          
+          // Modify code callback on backend to use dynamic redirect uri match
+          const { data } = await api.post('/auth/google/callback', { 
+            code,
+            redirectUri 
+          });
+          
+          localStorage.setItem('accessToken', data.accessToken);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setUser(data.user);
+          toast.success(locale === 'ru' ? 'Вход выполнен!' : 'Muvaffaqiyatli kirildi!');
+          
+          if (data.user.hasProfile) {
+            router.push('/dashboard');
+          } else {
+            router.push('/profile');
+          }
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || 'Google OAuth failed');
+        } finally {
+          setIsLoading(false);
+          // Clear query params to prevent double exchange
+          router.replace('/login');
+        }
+      };
+      exchangeCode();
+    }
+  }, [searchParams, router, setUser, locale]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setShowVerifyPrompt(false);
     try {
       await login(email, password);
-    } catch {
-      toast.error(t('error_login'));
+    } catch (err: any) {
+      if (err.response?.data?.error === 'EMAIL_NOT_VERIFIED') {
+        setShowVerifyPrompt(true);
+      } else {
+        toast.error(err.response?.data?.message || t('error_login'));
+      }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleResend = async () => {
+    setIsResending(true);
+    try {
+      await api.post('/auth/resend-verification', { email, locale });
+      toast.success(
+        locale === 'ru'
+          ? 'Новое письмо отправлено!'
+          : locale === 'en'
+          ? 'New verification email sent!'
+          : 'Yangi tasdiqlash xati yuborildi!'
+      );
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to resend link');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '1048705342403-placeholder.apps.googleusercontent.com';
+    const redirectUri = `${window.location.origin}/${locale}/login`;
+    
+    const targetUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `response_type=code&` +
+      `scope=email%20profile`;
+
+    window.location.href = targetUrl;
   };
 
   return (
@@ -40,44 +125,102 @@ export default function LoginPage() {
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">AI ovqat tahlili</p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="glass rounded-2xl p-6 shadow-xl space-y-5 dark:bg-slate-900/50 dark:border-slate-800">
-          <div>
-            <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">
-              {t('email')}
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all"
-              placeholder="email@example.com"
-            />
+        {/* Form Container */}
+        <div className="glass rounded-2xl p-6 shadow-xl space-y-5 dark:bg-slate-900/50 dark:border-slate-800">
+          
+          {/* Warning Prompt: Email not verified */}
+          {showVerifyPrompt && (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 p-4 rounded-xl text-center space-y-3">
+              <div className="flex items-center justify-center gap-2 text-amber-600 dark:text-amber-400">
+                <AlertTriangle size={18} />
+                <span className="text-xs font-black uppercase tracking-wider">Email tasdiqlanmagan</span>
+              </div>
+              <p className="text-[10px] text-amber-800 dark:text-slate-350 leading-relaxed font-semibold">
+                {locale === 'ru'
+                  ? 'Чтобы войти, сначала подтвердите почту по ссылке из письма.'
+                  : locale === 'en'
+                  ? 'Please confirm your email by clicking the link in your verification email before logging in.'
+                  : 'Tizimga kirishdan avval pochtangizni tasdiqlovchi havolani bosing.'}
+              </p>
+              <button
+                onClick={handleResend}
+                disabled={isResending}
+                className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw size={12} className={isResending ? 'animate-spin' : ''} />
+                {locale === 'ru' ? 'Выслать ссылку повторно' : locale === 'en' ? 'Resend Verification' : 'Havolani qayta yuborish'}
+              </button>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+                {t('email')}
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all"
+                placeholder="email@example.com"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+                {t('password')}
+              </label>
+              <input
+                id="login-password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/25 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>{t('signing_in')}</span>
+                </div>
+              ) : (
+                t('login')
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-gray-200/50 dark:border-slate-800/80"></div>
+            <span className="flex-shrink mx-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider">yoki / или</span>
+            <div className="flex-grow border-t border-gray-200/50 dark:border-slate-800/80"></div>
           </div>
 
-          <div>
-            <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">
-              {t('password')}
-            </label>
-            <input
-              id="login-password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all"
-              placeholder="••••••••"
-            />
-          </div>
-
+          {/* Google Login Button */}
           <button
-            type="submit"
+            onClick={handleGoogleLogin}
             disabled={isLoading}
-            className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/25 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
+            className="w-full py-3 rounded-xl font-bold text-xs text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/60 shadow-sm transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer disabled:opacity-50"
           >
-            {isLoading ? t('signing_in') : t('login')}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+            </svg>
+            Google orqali kirish
           </button>
 
           <p className="text-center text-sm text-gray-500 dark:text-slate-400">
@@ -86,7 +229,7 @@ export default function LoginPage() {
               {t('register')}
             </Link>
           </p>
-        </form>
+        </div>
       </div>
     </main>
   );

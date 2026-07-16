@@ -2,6 +2,9 @@ import {
   ConflictException,
   Injectable,
   UnauthorizedException,
+  ForbiddenException,
+  NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -10,13 +13,17 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
+    private mailService: MailService,
   ) {}
 
   // ─── Register ─────────────────────────────────────────
@@ -37,20 +44,41 @@ export class AuthService {
       type: argon2.argon2id,
     });
 
+    // Auto-verify if email is admin@calofit.com or matches admin prefix
+    const isTestAccount = dto.email.toLowerCase().startsWith('admin@');
+    
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiry
+
     const user = await this.prisma.user.create({
       data: {
         email: dto.email.toLowerCase(),
         passwordHash,
+        isEmailVerified: isTestAccount,
+        verificationToken: isTestAccount ? null : rawToken,
+        verificationTokenExpiresAt: isTestAccount ? null : expiresAt,
       },
-      select: { id: true, email: true },
+      select: { id: true, email: true, isEmailVerified: true },
     });
+
+    if (!user.isEmailVerified) {
+      // Send real/console-log verification email
+      await this.mailService.sendVerificationEmail(user.email, dto.locale || 'uz', rawToken);
+      
+      return {
+        accessToken: null,
+        refreshToken: null,
+        user: { id: user.id, email: user.email, hasProfile: false, isEmailVerified: false },
+      };
+    }
 
     const tokens = await this.generateAndSaveTokens(user.id);
 
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      user: { id: user.id, email: user.email, hasProfile: false },
+      user: { id: user.id, email: user.email, hasProfile: false, isEmailVerified: true },
     };
   }
 
@@ -58,7 +86,7 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
-      select: { id: true, email: true, passwordHash: true },
+      select: { id: true, email: true, passwordHash: true, isEmailVerified: true },
     });
 
     if (!user) {
@@ -73,6 +101,14 @@ export class AuthService {
       throw new UnauthorizedException({
         error: 'UNAUTHORIZED',
         message: "Email yoki parol noto'g'ri",
+      });
+    }
+
+    // Secure restriction: block access if user is not verified
+    if (!user.isEmailVerified) {
+      throw new ForbiddenException({
+        error: 'EMAIL_NOT_VERIFIED',
+        message: 'Iltimos, avval pochtangizni tasdiqlang.',
       });
     }
 
@@ -92,6 +128,167 @@ export class AuthService {
         hasProfile: !!profile,
       },
     };
+  }
+
+  // ─── Verify Email ─────────────────────────────────────
+  async verifyEmail(token: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        verificationToken: token,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException({
+        error: 'INVALID_TOKEN',
+        message: 'Tasdiqlash havolasi noto\'g\'ri yoki eskirgan',
+      });
+    }
+
+    if (user.verificationTokenExpiresAt && new Date() > user.verificationTokenExpiresAt) {
+      throw new UnauthorizedException({
+        error: 'EXPIRED_TOKEN',
+        message: 'Tasdiqlash havolasining muddati o\'tgan',
+      });
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isEmailVerified: true,
+        verificationToken: null,
+        verificationTokenExpiresAt: null,
+      },
+    });
+
+    return { success: true };
+  }
+
+  // ─── Resend Verification Token ────────────────────────
+  async resendVerification(email: string, locale: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (!user) {
+      throw new NotFoundException({
+        error: 'NOT_FOUND',
+        message: 'Foydalanuvchi topilmadi',
+      });
+    }
+
+    if (user.isEmailVerified) {
+      throw new ConflictException({
+        error: 'ALREADY_VERIFIED',
+        message: 'Email allaqachon tasdiqlangan',
+      });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationToken: rawToken,
+        verificationTokenExpiresAt: expiresAt,
+      },
+    });
+
+    await this.mailService.sendVerificationEmail(user.email, locale, rawToken);
+
+    return { success: true };
+  }
+
+  // ─── Google OAuth Login / Callback ────────────────────
+  async googleLogin(code: string) {
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
+    const clientSecret = this.config.get<string>('GOOGLE_CLIENT_SECRET');
+    const frontendUrl = this.config.get<string>('CORS_ORIGINS', 'http://localhost:3001').split(',')[0];
+    const redirectUri = `${this.config.get<string>('NEXT_PUBLIC_API_URL', 'http://localhost:3000')}/api/v1/auth/google/callback`;
+
+    if (!clientId || !clientSecret) {
+      throw new ForbiddenException({
+        error: 'GOOGLE_OAUTH_NOT_CONFIGURED',
+        message: 'Google Client credentials are not configured on the backend.',
+      });
+    }
+
+    try {
+      // 1. Exchange authorization code for tokens
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      const tokenData = await tokenRes.json();
+      if (!tokenRes.ok || !tokenData.access_token) {
+        throw new Error(tokenData.error_description || 'Failed to exchange auth code');
+      }
+
+      // 2. Fetch user profile from google userinfo API
+      const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      const profile = await userinfoRes.json();
+      if (!userinfoRes.ok || !profile.email) {
+        throw new Error('Failed to fetch Google user profile');
+      }
+
+      // 3. Find or Create user in our DB
+      let user = await this.prisma.user.findUnique({
+        where: { email: profile.email.toLowerCase() },
+      });
+
+      if (!user) {
+        // Create secure random password for OAuth user
+        const securePass = crypto.randomBytes(32).toString('hex');
+        const passwordHash = await argon2.hash(securePass);
+
+        user = await this.prisma.user.create({
+          data: {
+            email: profile.email.toLowerCase(),
+            passwordHash,
+            isEmailVerified: true, // Google pre-verifies emails
+          },
+        });
+      } else if (!user.isEmailVerified) {
+        // If local user registered but didn't verify, verify now because Google oauth confirms email ownership
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { isEmailVerified: true, verificationToken: null, verificationTokenExpiresAt: null },
+        });
+      }
+
+      const profileExists = await this.prisma.profile.findUnique({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+
+      const tokens = await this.generateAndSaveTokens(user.id);
+
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        hasProfile: !!profileExists,
+        email: user.email,
+      };
+    } catch (err: any) {
+      this.logger.error('Google OAuth exchange failed', err.stack);
+      throw new UnauthorizedException({
+        error: 'GOOGLE_OAUTH_FAILED',
+        message: `Google authorization failed: ${err.message}`,
+      });
+    }
   }
 
   // ─── Refresh ──────────────────────────────────────────

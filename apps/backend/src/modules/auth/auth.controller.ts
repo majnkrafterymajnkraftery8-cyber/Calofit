@@ -4,6 +4,8 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Get,
+  Query,
   Req,
   Res,
 } from '@nestjs/common';
@@ -12,6 +14,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
@@ -45,7 +48,9 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.register(dto);
-    res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
+    if (result.refreshToken) {
+      res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
+    }
     return { accessToken: result.accessToken, user: result.user };
   }
 
@@ -63,6 +68,47 @@ export class AuthController {
     const result = await this.authService.login(dto);
     res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
     return { accessToken: result.accessToken, user: result.user };
+  }
+
+  @Get('verify-email')
+  @Public()
+  @ApiOperation({ summary: 'Emailni tasdiqlash' })
+  @ApiQuery({ name: 'token', required: true })
+  @ApiResponse({ status: 200, description: 'Email tasdiqlandi' })
+  @ApiResponse({ status: 401, description: 'Yaroqsiz token' })
+  async verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
+  @Post('resend-verification')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Tasdiqlash xatini qayta yuborish' })
+  @ApiResponse({ status: 200, description: 'Xat yuborildi' })
+  async resendVerification(
+    @Body() body: { email: string; locale?: string },
+  ) {
+    return this.authService.resendVerification(body.email, body.locale || 'uz');
+  }
+
+  @Post('google/callback')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  @ApiResponse({ status: 200, description: 'Muvaffaqiyatli kirish' })
+  async googleCallback(
+    @Body() body: { code: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.googleLogin(body.code);
+    res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
+    return {
+      accessToken: result.accessToken,
+      user: {
+        email: result.email,
+        hasProfile: result.hasProfile,
+      },
+    };
   }
 
   @Post('refresh')

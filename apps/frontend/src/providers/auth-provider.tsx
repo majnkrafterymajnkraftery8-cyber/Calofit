@@ -22,7 +22,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<{ isEmailVerified: boolean } | void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
 }
@@ -68,11 +68,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (email: string, password: string) => {
-      const { data } = await api.post('/auth/register', { email, password });
+      const locale = window.location.pathname.split('/')[1] || 'uz';
+      const { data } = await api.post('/auth/register', { email, password, locale });
+      
+      if (!data.accessToken) {
+        return { isEmailVerified: false };
+      }
+
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
       router.push('/profile'); // Yangi user → profil onboarding
+      return { isEmailVerified: true };
     },
     [router],
   );
