@@ -33,6 +33,8 @@ export default function LoginPage() {
         setIsLoading(true);
         try {
           const redirectUri = `${window.location.origin}/${locale}/login`;
+          const targetUrl = `${api.defaults.baseURL}/auth/google/callback`;
+          console.log(`[Google OAuth Debug] Requesting exchange on url: ${targetUrl} with redirectUri: ${redirectUri}`);
           
           // Modify code callback on backend to use dynamic redirect uri match
           const { data } = await api.post('/auth/google/callback', { 
@@ -51,6 +53,8 @@ export default function LoginPage() {
             router.push('/profile');
           }
         } catch (err: any) {
+          console.error('[Google OAuth Debug] Exchange failed:', err);
+          console.error('[Google OAuth Debug] Response data:', err.response?.data);
           toast.error(err.response?.data?.message || 'Google OAuth failed');
         } finally {
           setIsLoading(false);
