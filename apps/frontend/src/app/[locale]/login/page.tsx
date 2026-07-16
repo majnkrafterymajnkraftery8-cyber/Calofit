@@ -15,8 +15,19 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const params = useParams();
   const locale = (params?.locale as string) || 'uz';
-  const { login, setUser } = useAuth();
+  const { login, setUser, user } = useAuth();
   
+  // Auto redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      if (user.hasProfile) {
+        router.push('/dashboard');
+      } else {
+        router.push('/profile');
+      }
+    }
+  }, [user, router]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);

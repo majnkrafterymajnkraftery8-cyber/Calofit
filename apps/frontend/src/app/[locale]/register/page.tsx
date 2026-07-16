@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/providers/auth-provider';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { toast } from 'sonner';
 import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -13,8 +13,21 @@ export default function RegisterPage() {
   const t = useTranslations('auth');
   const params = useParams();
   const locale = (params?.locale as string) || 'uz';
+  const router = useRouter();
   
-  const { register } = useAuth();
+  const { register, user } = useAuth();
+  
+  // Auto redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      if (user.hasProfile) {
+        router.push('/dashboard');
+      } else {
+        router.push('/profile');
+      }
+    }
+  }, [user, router]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
