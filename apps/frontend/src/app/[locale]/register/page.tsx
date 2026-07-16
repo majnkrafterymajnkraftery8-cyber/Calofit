@@ -3,17 +3,27 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/providers/auth-provider';
-import { Link, useRouter } from '@/i18n/routing';
+import { Link, useRouter, usePathname } from '@/i18n/routing';
 import { toast } from 'sonner';
 import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { CheckCircle2, Mail, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Mail, RefreshCw, Sun, Moon, ChevronDown, Check } from 'lucide-react';
+import { useTheme } from '@/providers/theme-provider';
+
+const LANG_MAP = {
+  uz: { label: "UZ", flag: "🇺🇿" },
+  ru: { label: "RU", flag: "🇷🇺" },
+  en: { label: "EN", flag: "🇬🇧" }
+};
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
   const params = useParams();
   const locale = (params?.locale as string) || 'uz';
   const router = useRouter();
+  const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
+  const [langOpen, setLangOpen] = useState(false);
   
   const { register, user } = useAuth();
   
@@ -90,7 +100,59 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-transparent">
+    <main className="relative min-h-screen flex items-center justify-center p-4 bg-transparent">
+      {/* Floating Header Toolbar */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        {/* Theme switch button */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="p-2.5 rounded-xl border border-gray-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
+        </button>
+
+        {/* Language Selector Dropdown */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setLangOpen(!langOpen)}
+            className="px-3 py-2.5 rounded-xl border border-gray-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-all duration-200 cursor-pointer shadow-sm flex items-center gap-1.5 text-xs font-semibold active:scale-95"
+          >
+            <span>{LANG_MAP[locale as keyof typeof LANG_MAP]?.flag}</span>
+            <span>{LANG_MAP[locale as keyof typeof LANG_MAP]?.label}</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${langOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {langOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setLangOpen(false)} />
+              <div className="absolute right-0 mt-1.5 w-28 rounded-xl border border-gray-200/50 dark:border-slate-800/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-lg py-1 z-20 animate-fade-in">
+                {(Object.keys(LANG_MAP) as Array<keyof typeof LANG_MAP>).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setLangOpen(false);
+                      router.replace(pathname, { locale: key });
+                    }}
+                    className={`w-full px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/60 flex items-center justify-between cursor-pointer ${
+                      locale === key ? 'text-green-600 dark:text-emerald-400 bg-green-50/50 dark:bg-emerald-950/20' : 'text-gray-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>{LANG_MAP[key].flag}</span>
+                      <span>{LANG_MAP[key].label}</span>
+                    </span>
+                    {locale === key && <Check className="w-3.5 h-3.5 text-green-500" />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       <div className="w-full max-w-sm page-enter">
         {/* Logo */}
         <div className="text-center mb-8">
