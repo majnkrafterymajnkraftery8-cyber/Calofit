@@ -136,14 +136,14 @@ export default function DashboardPage({ params }: { params: { locale: string } }
         {/* Centered Navigation Menu */}
         <nav className="flex items-center justify-center bg-white/90 dark:bg-[#1e293b]/90 backdrop-blur-md px-2 py-1 rounded-2xl border border-gray-200/60 dark:border-slate-800 shadow-md gap-1">
           <Link href="/dashboard" className="px-4 py-2 rounded-xl text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 transition-all">
-            {locale === 'ru' ? 'Главная' : 'Bosh sahifa'}
+            {locale === 'ru' ? 'Главная' : locale === 'en' ? 'Home' : 'Bosh sahifa'}
           </Link>
           <Link href="/chat" className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-450 flex items-center gap-1.5 transition-all">
             <Sparkles size={13} className="text-emerald-500" />
-            {locale === 'ru' ? 'ИИ Диетолог' : 'Sun\'iy intellekt'}
+            {locale === 'ru' ? 'ИИ Диетолог' : locale === 'en' ? 'AI Dietician' : 'Sun\'iy intellekt'}
           </Link>
           <Link href="/support" className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-450 transition-all">
-            {locale === 'ru' ? 'Помощь' : 'Yordam'}
+            {locale === 'ru' ? 'Помощь' : locale === 'en' ? 'Support' : 'Yordam'}
           </Link>
         </nav>
 
@@ -206,14 +206,22 @@ export default function DashboardPage({ params }: { params: { locale: string } }
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  Salom, {profile.name ?? 'Foydalanuvchi'} 👋
+                  {locale === 'ru' 
+                    ? `Привет, ${profile.name ?? 'Пользователь'} 👋` 
+                    : locale === 'en' 
+                    ? `Hello, ${profile.name ?? 'User'} 👋` 
+                    : `Salom, ${profile.name ?? 'Foydalanuvchi'} 👋`}
                 </h1>
                 <p className="text-xs text-slate-650 dark:text-slate-350 mt-1 font-semibold">
-                  {locale === 'ru' ? 'Рады видеть вас! Вот ваш баланс калорий на сегодня.' : 'Bugungi ovqatlanish balansingiz va statistika.'}
+                  {locale === 'ru' 
+                    ? 'Рады видеть вас! Вот ваш баланс калорий на сегодня.' 
+                    : locale === 'en' 
+                    ? 'We are glad to see you! Here is your calorie balance for today.' 
+                    : 'Bugungi ovqatlanish balansingiz va statistika.'}
                 </p>
               </div>
               <div className="self-start sm:self-center px-4 py-2 rounded-2xl text-xs font-black bg-white dark:bg-[#1e293b] text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-md">
-                {uiText.dailyGoal} {profile.dailyCalorieGoal} ккал
+                {uiText.dailyGoal} {profile.dailyCalorieGoal} {locale === 'ru' ? 'ккал' : 'kcal'}
               </div>
             </div>
           </div>
@@ -255,7 +263,7 @@ export default function DashboardPage({ params }: { params: { locale: string } }
 
                   <div className="mt-4 pt-3 border-t border-gray-150/50 dark:border-slate-800/80 flex flex-wrap gap-2 items-center">
                     <span className="px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10">
-                      {Math.round(latestMealDisplay.calories)} ккал
+                      {Math.round(latestMealDisplay.calories)} {locale === 'ru' ? 'ккал' : locale === 'en' ? 'kcal' : 'kkal'}
                     </span>
                     <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-650 dark:text-slate-350">
                       {getHumanizedMacros(latestMealDisplay.protein, latestMealDisplay.fat, latestMealDisplay.carbs)}
@@ -309,17 +317,17 @@ export default function DashboardPage({ params }: { params: { locale: string } }
 
               {/* Stats Panel */}
               <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-150/70 dark:border-slate-800/80 text-center shadow-sm">
+                 <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-150/70 dark:border-slate-800/80 text-center shadow-sm">
                   <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">{uiText.caloriesGoal}</span>
-                  <span className="text-lg font-black text-slate-900 dark:text-white">{profile.dailyCalorieGoal} <span className="text-[10px] font-normal text-gray-400">kkal</span></span>
+                  <span className="text-lg font-black text-slate-900 dark:text-white">{profile.dailyCalorieGoal} <span className="text-[10px] font-normal text-gray-400">{locale === 'ru' ? 'ккал' : locale === 'en' ? 'kcal' : 'kkal'}</span></span>
                 </div>
                 <div className="p-4 rounded-2xl bg-emerald-55/40 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/30 text-center shadow-sm">
                   <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider block mb-1">{uiText.consumed}</span>
-                  <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">{Math.round(today.consumed.calories)} <span className="text-[10px] font-normal text-emerald-500/70">kkal</span></span>
+                  <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">{Math.round(today.consumed.calories)} <span className="text-[10px] font-normal text-emerald-500/70">{locale === 'ru' ? 'ккал' : locale === 'en' ? 'kcal' : 'kkal'}</span></span>
                 </div>
                 <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-150/70 dark:border-slate-800/80 text-center shadow-sm">
                   <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">{uiText.remaining}</span>
-                  <span className="text-lg font-black text-slate-700 dark:text-slate-350">{Math.round(today.remaining.calories)} <span className="text-[10px] font-normal text-gray-450">kkal</span></span>
+                  <span className="text-lg font-black text-slate-700 dark:text-slate-350">{Math.round(today.remaining.calories)} <span className="text-[10px] font-normal text-gray-450">{locale === 'ru' ? 'ккал' : locale === 'en' ? 'kcal' : 'kkal'}</span></span>
                 </div>
               </div>
             </div>
