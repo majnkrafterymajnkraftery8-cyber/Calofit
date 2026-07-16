@@ -97,10 +97,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Google OAuth callback' })
   @ApiResponse({ status: 200, description: 'Muvaffaqiyatli kirish' })
   async googleCallback(
-    @Body() body: { code: string },
+    @Body() body: { code: string; redirectUri: string },
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.googleLogin(body.code);
+    const result = await this.authService.googleLogin(body.code, body.redirectUri);
     res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
     return {
       accessToken: result.accessToken,

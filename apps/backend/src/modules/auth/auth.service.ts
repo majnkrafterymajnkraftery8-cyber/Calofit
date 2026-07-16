@@ -202,11 +202,9 @@ export class AuthService {
   }
 
   // ─── Google OAuth Login / Callback ────────────────────
-  async googleLogin(code: string) {
+  async googleLogin(code: string, redirectUri: string) {
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = this.config.get<string>('GOOGLE_CLIENT_SECRET');
-    const frontendUrl = this.config.get<string>('CORS_ORIGINS', 'http://localhost:3001').split(',')[0];
-    const redirectUri = `${this.config.get<string>('NEXT_PUBLIC_API_URL', 'http://localhost:3000')}/api/v1/auth/google/callback`;
 
     if (!clientId || !clientSecret) {
       throw new ForbiddenException({
