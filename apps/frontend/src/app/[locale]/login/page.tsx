@@ -31,6 +31,7 @@ export default function LoginPage() {
     if (code) {
       const exchangeCode = async () => {
         setIsLoading(true);
+        let success = false;
         try {
           const redirectUri = `${window.location.origin}/${locale}/login`;
           const targetUrl = `${api.defaults.baseURL}/auth/google/callback`;
@@ -47,6 +48,7 @@ export default function LoginPage() {
           setUser(data.user);
           toast.success(locale === 'ru' ? 'Вход выполнен!' : 'Muvaffaqiyatli kirildi!');
           
+          success = true;
           if (data.user.hasProfile) {
             router.push('/dashboard');
           } else {
@@ -58,8 +60,10 @@ export default function LoginPage() {
           toast.error(err.response?.data?.message || 'Google OAuth failed');
         } finally {
           setIsLoading(false);
-          // Clear query params to prevent double exchange
-          router.replace('/login');
+          if (!success) {
+            // Clear query params to prevent double exchange only on failure
+            router.replace('/login');
+          }
         }
       };
       exchangeCode();
