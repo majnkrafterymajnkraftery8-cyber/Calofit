@@ -395,7 +395,9 @@ export default function DashboardPage({ params }: { params: { locale: string } }
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="font-black text-slate-900 dark:text-white text-xs">{Math.round(Number(log.calories))} ккал</p>
+                      <p className="font-black text-slate-900 dark:text-white text-xs">
+                        {Math.round(Number(log.calories))} {locale === 'ru' ? 'ккал' : locale === 'en' ? 'kcal' : 'kkal'}
+                      </p>
                       <p className="text-[8px] text-gray-400 dark:text-slate-500 font-bold mt-0.5">
                         {getHumanizedMacros(log.protein, log.fat, log.carbs)}
                       </p>

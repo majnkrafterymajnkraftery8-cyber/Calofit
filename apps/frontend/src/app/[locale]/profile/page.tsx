@@ -6,11 +6,14 @@ import { useAuth } from '@/providers/auth-provider';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/routing';
+import { useParams } from 'next/navigation';
 
 const STEPS = ['personal', 'size', 'goal'] as const;
 
 export default function ProfilePage() {
   const t = useTranslations('profile');
+  const params = useParams();
+  const locale = (params?.locale as string) || 'uz';
   const { user, setUser } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -34,10 +37,10 @@ export default function ProfilePage() {
       await api.post('/profile', form);
       if (user) setUser({ ...user, hasProfile: true });
       localStorage.setItem('user', JSON.stringify({ ...user, hasProfile: true }));
-      toast.success("Profil saqlandi!");
+      toast.success(locale === 'ru' ? 'Профиль сохранен!' : locale === 'en' ? 'Profile saved!' : 'Profil saqlandi!');
       router.push('/dashboard');
     } catch {
-      toast.error("Profilni saqlashda xatolik");
+      toast.error(locale === 'ru' ? 'Ошибка сохранения профиля' : locale === 'en' ? 'Failed to save profile' : 'Profilni saqlashda xatolik');
     } finally {
       setIsLoading(false);
     }
@@ -133,15 +136,30 @@ export default function ProfilePage() {
           {step === 2 && (
             <div className="space-y-3 page-enter">
               {([
-                { value: 'LOSE_WEIGHT', label: t('goal_lose'), emoji: '🏃', desc: '−500 kcal/kun' },
-                { value: 'MAINTAIN', label: t('goal_maintain'), emoji: '⚖️', desc: 'Barqaror ovqatlanish' },
-                { value: 'GAIN_WEIGHT', label: t('goal_gain'), emoji: '💪', desc: '+300 kcal/kun' },
+                { 
+                  value: 'LOSE_WEIGHT', 
+                  label: t('goal_lose'), 
+                  emoji: '🏃', 
+                  desc: locale === 'ru' ? '−500 ккал/день' : locale === 'en' ? '−500 kcal/day' : '−500 kkal/kun' 
+                },
+                { 
+                  value: 'MAINTAIN', 
+                  label: t('goal_maintain'), 
+                  emoji: '⚖️', 
+                  desc: locale === 'ru' ? 'Стабильное питание' : locale === 'en' ? 'Stable nutrition' : 'Barqaror ovqatlanish' 
+                },
+                { 
+                  value: 'GAIN_WEIGHT', 
+                  label: t('goal_gain'), 
+                  emoji: '💪', 
+                  desc: locale === 'ru' ? '+300 ккал/день' : locale === 'en' ? '+300 kcal/day' : '+300 kkal/kun' 
+                },
               ] as const).map((g) => (
                 <button key={g.value} type="button" onClick={() => updateForm('goal', g.value)}
                   className={`w-full p-4 rounded-xl text-left transition-all border flex items-center gap-4 hover-lift ${
                     form.goal === g.value
                       ? 'border-green-500 bg-green-50 text-green-700 dark:border-emerald-500/50 dark:bg-emerald-950/20 dark:text-emerald-400 shadow-md shadow-green-500/10'
-                      : 'border-gray-200 bg-white hover:border-gray-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                      : 'border-gray-200 bg-white hover:border-gray-300 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700'
                   }`}>
                   <span className="text-2xl">{g.emoji}</span>
                   <div>
@@ -157,18 +175,18 @@ export default function ProfilePage() {
           <div className="flex gap-3 mt-6">
             {step > 0 && (
               <button type="button" onClick={() => setStep(step - 1)}
-                className="flex-1 py-3 rounded-xl font-medium text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all">
-                ← Orqaga
+                className="flex-1 py-3 rounded-xl font-medium text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer">
+                {locale === 'ru' ? '← Назад' : locale === 'en' ? '← Back' : '← Orqaga'}
               </button>
             )}
             {step < STEPS.length - 1 ? (
               <button type="button" onClick={() => setStep(step + 1)} disabled={!canNext()}
-                className="flex-1 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                Keyingi →
+                className="flex-1 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                {locale === 'ru' ? 'Далее →' : locale === 'en' ? 'Next →' : 'Keyingi →'}
               </button>
             ) : (
               <button type="button" onClick={handleSubmit} disabled={isLoading}
-                className="flex-1 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/25 transition-all disabled:opacity-60">
+                className="flex-1 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/25 transition-all disabled:opacity-60 cursor-pointer">
                 {isLoading ? t('saving') : t('save')}
               </button>
             )}
