@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/providers/auth-provider';
 import { api } from '@/lib/api';
@@ -27,6 +27,13 @@ export default function ProfilePage() {
     weightKg: 70,
     goal: 'MAINTAIN' as 'LOSE_WEIGHT' | 'MAINTAIN' | 'GAIN_WEIGHT',
   });
+
+  // Pre-fill name from user object (e.g. from Telegram first_name)
+  useEffect(() => {
+    if (user?.name && !form.name) {
+      setForm((prev) => ({ ...prev, name: user.name || '' }));
+    }
+  }, [user, form.name]);
 
   const updateForm = (key: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [key]: value }));

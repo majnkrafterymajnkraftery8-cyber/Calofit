@@ -111,6 +111,28 @@ export class AuthController {
     };
   }
 
+  @Post('telegram/login')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Telegram Web App authentication' })
+  @ApiResponse({ status: 200, description: 'Muvaffaqiyatli kirish' })
+  async telegramLogin(
+    @Body() body: { initData: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.telegramLogin(body.initData);
+    res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
+    return {
+      accessToken: result.accessToken,
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        hasProfile: result.user.hasProfile,
+      },
+    };
+  }
+
   @Post('refresh')
   @Public()
   @HttpCode(HttpStatus.OK)

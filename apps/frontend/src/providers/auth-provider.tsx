@@ -15,6 +15,7 @@ interface User {
   id: string;
   email: string;
   hasProfile: boolean;
+  name?: string;
 }
 
 interface AuthContextType {
@@ -46,9 +47,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
       }
+      setIsLoading(false);
+    } else {
+      // Check if running inside Telegram WebApp
+      if (typeof window !== 'undefined') {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg) {
+          try {
+            tg.ready();
+            tg.expand();
+          } catch (e) {
+            console.warn('Telegram SDK initialization warning:', e);
+          }
+          
+          const initData = tg.initData;
+          if (initData) {
+            setIsLoading(true);
+            api.post('/auth/telegram/login', { initData })
+              .then(({ data }) => {
+                localStorage.setItem('accessToken', data.accessToken);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                setUser(data.user);
+                
+                // Redirect depending on onboarding profile
+                if (data.user.hasProfile) {
+                  router.push('/dashboard');
+                } else {
+                  router.push('/profile');
+                }
+              })
+              .catch((err) => {
+                console.error('Telegram WebApp auto-login failed:', err);
+              })
+              .finally(() => {
+                setIsLoading(false);
+              });
+            return;
+          }
+        }
+      }
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, []);
+  }, [router]);
 
   const login = useCallback(
     async (email: string, password: string) => {

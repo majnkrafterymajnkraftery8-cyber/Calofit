@@ -344,6 +344,106 @@ export class AuthService {
     });
   }
 
+  // ─── Telegram Web App Login ───────────────────────────
+  async telegramLogin(initData: string) {
+    const botToken = this.config.get<string>('TELEGRAM_BOT_TOKEN') || '8838776318:AAERdKmFhaN-JgRhrslpeVdVUVZhtghoXCw';
+    
+    // 1. Verify initData signature
+    const verified = this.verifyTelegramInitData(initData, botToken);
+    if (!verified) {
+      throw new UnauthorizedException({
+        error: 'TELEGRAM_AUTH_FAILED',
+        message: 'Telegram authentication signature verification failed.',
+      });
+    }
+
+    // 2. Parse user data
+    const params = new URLSearchParams(initData);
+    const userJson = params.get('user');
+    if (!userJson) {
+      throw new UnauthorizedException({
+        error: 'TELEGRAM_AUTH_FAILED',
+        message: 'No user data found in initData.',
+      });
+    }
+
+    let tgUser: { id: number; first_name: string; last_name?: string; username?: string };
+    try {
+      tgUser = JSON.parse(userJson);
+    } catch {
+      throw new UnauthorizedException({
+        error: 'TELEGRAM_AUTH_FAILED',
+        message: 'Invalid user payload JSON format.',
+      });
+    }
+
+    // 3. Find or register user
+    const email = `tg_${tgUser.id}@telegram.calofit.com`;
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      const securePass = crypto.randomBytes(32).toString('hex');
+      const passwordHash = await argon2.hash(securePass);
+
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          isEmailVerified: true,
+        },
+      });
+    }
+
+    const profileExists = await this.prisma.profile.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+
+    const tokens = await this.generateAndSaveTokens(user.id);
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: tgUser.first_name,
+        hasProfile: !!profileExists,
+      },
+    };
+  }
+
+  private verifyTelegramInitData(initData: string, botToken: string): boolean {
+    try {
+      const params = new URLSearchParams(initData);
+      const hash = params.get('hash');
+      if (!hash) return false;
+
+      const keys = Array.from(params.keys()).filter((key) => key !== 'hash');
+      keys.sort();
+
+      const dataCheckString = keys
+        .map((key) => `${key}=${params.get(key)}`)
+        .join('\n');
+
+      const secretKey = crypto
+        .createHmac('sha256', 'WebTelegram')
+        .update(botToken)
+        .digest();
+
+      const calculatedHash = crypto
+        .createHmac('sha256', secretKey)
+        .update(dataCheckString)
+        .digest('hex');
+
+      return calculatedHash === hash;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // ─── Private helpers ──────────────────────────────────
   private async generateAndSaveTokens(userId: string) {
     const accessToken = this.jwt.sign(

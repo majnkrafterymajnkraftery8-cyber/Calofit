@@ -121,10 +121,10 @@ export default function DashboardPage({ params }: { params: { locale: string } }
 
   return (
     <main className="min-h-screen pb-28 bg-transparent">
-      
+
       {/* Header with Centered Navigation */}
       <header className="w-full max-w-6xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 border-b border-gray-200/40 dark:border-slate-800/40 bg-white/40 dark:bg-slate-900/10 backdrop-blur-md sticky top-0 z-30 transition-all duration-300">
-        
+
         {/* Logo Section */}
         <div className="flex items-center gap-3 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/15 shrink-0">
@@ -187,7 +187,7 @@ export default function DashboardPage({ params }: { params: { locale: string } }
           <button onClick={toggleTheme} className="p-2.5 rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-green-50/50 dark:hover:bg-slate-800 transition-all border border-gray-250/50 dark:border-slate-800 bg-white dark:bg-[#1e293b] shadow-sm cursor-pointer active:scale-95 duration-200" title={theme === 'dark' ? "Kunduzgi rejim" : "Tungi rejim"}>
             {theme === 'dark' ? <Sun size={16} className="text-amber-500 animate-spin-slow" /> : <Moon size={16} className="text-indigo-650" />}
           </button>
-          
+
           {/* Logout Button */}
           <button onClick={logout} className="p-2.5 rounded-xl text-slate-450 hover:text-red-650 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all border border-gray-250/50 dark:border-slate-800 bg-white dark:bg-[#1e293b] shadow-sm cursor-pointer active:scale-95 duration-200" aria-label="Chiqish" title="Tizimdan chiqish">
             <LogOut size={16} />
@@ -197,27 +197,27 @@ export default function DashboardPage({ params }: { params: { locale: string } }
 
       {/* Main Responsive Grid Layout */}
       <div className="w-full max-w-6xl mx-auto px-6 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 page-enter">
-        
+
         {/* Left Side: Profile Banner, Circular ring, and Macros Progress (Grid Span 8) */}
         <div className="lg:col-span-8 space-y-6">
-          
+
           {/* Profile Welcome Banner */}
           <div className="glass rounded-3xl p-6 shadow-xl relative overflow-hidden bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/5 dark:to-transparent border border-emerald-500/10 hover-lift">
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {locale === 'ru' 
-                    ? `Привет, ${profile.name ?? 'Пользователь'} 👋` 
-                    : locale === 'en' 
-                    ? `Hello, ${profile.name ?? 'User'} 👋` 
-                    : `Salom, ${profile.name ?? 'Foydalanuvchi'} 👋`}
+                  {locale === 'ru'
+                    ? `Привет, ${profile.name ?? 'Пользователь'} 👋`
+                    : locale === 'en'
+                      ? `Hello, ${profile.name ?? 'User'} 👋`
+                      : `Salom, ${profile.name ?? 'Foydalanuvchi'} 👋`}
                 </h1>
                 <p className="text-xs text-slate-650 dark:text-slate-350 mt-1 font-semibold">
-                  {locale === 'ru' 
-                    ? 'Рады видеть вас! Вот ваш баланс калорий на сегодня.' 
-                    : locale === 'en' 
-                    ? 'We are glad to see you! Here is your calorie balance for today.' 
-                    : 'Bugungi ovqatlanish balansingiz va statistika.'}
+                  {locale === 'ru'
+                    ? 'Рады видеть вас! Вот ваш баланс калорий на сегодня.'
+                    : locale === 'en'
+                      ? 'We are glad to see you! Here is your calorie balance for today.'
+                      : 'Bugungi ovqatlanish balansingiz va statistika.'}
                 </p>
               </div>
               <div className="self-start sm:self-center px-4 py-2 rounded-2xl text-xs font-black bg-white dark:bg-[#1e293b] text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-md">
@@ -234,7 +234,7 @@ export default function DashboardPage({ params }: { params: { locale: string } }
 
             {latestMealDisplay ? (
               <div className="flex flex-col md:flex-row gap-5 items-stretch">
-                
+
                 {/* Visual Image Preview */}
                 <div className="relative w-full md:w-48 h-40 md:h-auto min-h-[140px] rounded-2xl overflow-hidden shadow-md shrink-0 border border-gray-150/70 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                   {latestMealDisplay.imageUrl ? (
@@ -292,14 +292,14 @@ export default function DashboardPage({ params }: { params: { locale: string } }
           <div className="glass rounded-3xl p-6 shadow-xl relative overflow-hidden dark:bg-slate-900/50 dark:border-slate-800 transition-all hover-lift">
             <div className="absolute top-0 right-0 w-44 h-44 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
             <p className="text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-5">{t('title')}</p>
-            
+
             <div className="flex flex-col sm:flex-row items-center gap-8">
               {/* Circular Dial */}
               <div className="relative w-36 h-36 shrink-0">
                 <svg className="w-36 h-36 -rotate-90" viewBox="0 0 120 120">
                   <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeWidth="8" />
                   <circle cx="60" cy="60" r="52" fill="none" strokeWidth="8" strokeLinecap="round"
-                    className="transition-all duration-1000 ease-out"
+                    className="transition-all duration-1000 ease-out glow-ring"
                     stroke="url(#progress-gradient)"
                     strokeDasharray={`${Math.min(today.progress, 100) * 3.267} 326.7`} />
                   <defs>
@@ -317,7 +317,7 @@ export default function DashboardPage({ params }: { params: { locale: string } }
 
               {/* Stats Panel */}
               <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-3 gap-4">
-                 <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-150/70 dark:border-slate-800/80 text-center shadow-sm">
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-150/70 dark:border-slate-800/80 text-center shadow-sm">
                   <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">{uiText.caloriesGoal}</span>
                   <span className="text-lg font-black text-slate-900 dark:text-white">{profile.dailyCalorieGoal} <span className="text-[10px] font-normal text-gray-400">{locale === 'ru' ? 'ккал' : locale === 'en' ? 'kcal' : 'kkal'}</span></span>
                 </div>
@@ -370,7 +370,7 @@ export default function DashboardPage({ params }: { params: { locale: string } }
                 {locale === 'ru' ? 'Дневник ➔' : locale === 'en' ? 'Diary ➔' : 'Kundalik ➔'}
               </Link>
             </div>
-            
+
             {recentLogs.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                 <p className="text-5xl mb-3 animate-pulse">🥗</p>
