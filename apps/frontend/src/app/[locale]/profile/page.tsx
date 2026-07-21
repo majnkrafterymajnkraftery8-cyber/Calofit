@@ -19,6 +19,69 @@ export default function ProfilePage() {
   const [step, setStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [dobYear, setDobYear] = useState<string>('');
+  const [dobMonth, setDobMonth] = useState<string>('');
+  const [dobDay, setDobDay] = useState<string>('');
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 110 }, (_, i) => currentYear - i);
+
+  const getMonthsList = (lang: string) => {
+    if (lang === 'ru') {
+      return [
+        { value: '1', label: 'Январь' },
+        { value: '2', label: 'Февраль' },
+        { value: '3', label: 'Март' },
+        { value: '4', label: 'Апрель' },
+        { value: '5', label: 'Май' },
+        { value: '6', label: 'Июнь' },
+        { value: '7', label: 'Июль' },
+        { value: '8', label: 'Август' },
+        { value: '9', label: 'Сентябрь' },
+        { value: '10', label: 'Октябрь' },
+        { value: '11', label: 'Ноябрь' },
+        { value: '12', label: 'Декабрь' },
+      ];
+    }
+    if (lang === 'en') {
+      return [
+        { value: '1', label: 'January' },
+        { value: '2', label: 'February' },
+        { value: '3', label: 'March' },
+        { value: '4', label: 'April' },
+        { value: '5', label: 'May' },
+        { value: '6', label: 'June' },
+        { value: '7', label: 'July' },
+        { value: '8', label: 'August' },
+        { value: '9', label: 'September' },
+        { value: '10', label: 'October' },
+        { value: '11', label: 'November' },
+        { value: '12', label: 'December' },
+      ];
+    }
+    return [
+      { value: '1', label: 'Yanvar' },
+      { value: '2', label: 'Fevral' },
+      { value: '3', label: 'Mart' },
+      { value: '4', label: 'Aprel' },
+      { value: '5', label: 'May' },
+      { value: '6', label: 'Iyun' },
+      { value: '7', label: 'Iyul' },
+      { value: '8', label: 'Avgust' },
+      { value: '9', label: 'Sentyabr' },
+      { value: '10', label: 'Oktyabr' },
+      { value: '11', label: 'Noyabr' },
+      { value: '12', label: 'Dekabr' },
+    ];
+  };
+
+  const getDaysArray = (yearStr: string, monthStr: string) => {
+    const year = parseInt(yearStr) || currentYear;
+    const month = parseInt(monthStr) || 1;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    return Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  };
+
   const [form, setForm] = useState({
     name: '',
     dateOfBirth: '',
@@ -34,6 +97,37 @@ export default function ProfilePage() {
       setForm((prev) => ({ ...prev, name: user.name || '' }));
     }
   }, [user, form.name]);
+
+  // Sync state to form.dateOfBirth
+  useEffect(() => {
+    if (dobYear && dobMonth && dobDay) {
+      const m = dobMonth.padStart(2, '0');
+      const d = dobDay.padStart(2, '0');
+      setForm((prev) => ({ ...prev, dateOfBirth: `${dobYear}-${m}-${d}` }));
+    } else {
+      setForm((prev) => ({ ...prev, dateOfBirth: '' }));
+    }
+  }, [dobYear, dobMonth, dobDay]);
+
+  // Adjust day if month length changes
+  useEffect(() => {
+    if (dobYear && dobMonth && dobDay) {
+      const days = getDaysArray(dobYear, dobMonth);
+      const dayNum = parseInt(dobDay);
+      if (dayNum > days.length) {
+        setDobDay(String(days.length));
+      }
+    }
+  }, [dobYear, dobMonth]);
+
+  const isDobValid = () => {
+    if (!form.dateOfBirth) return false;
+    const selected = new Date(form.dateOfBirth);
+    const now = new Date();
+    selected.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    return selected <= now;
+  };
 
   const updateForm = (key: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -54,7 +148,7 @@ export default function ProfilePage() {
   };
 
   const canNext = () => {
-    if (step === 0) return form.name.length >= 2 && form.dateOfBirth;
+    if (step === 0) return form.name.length >= 2 && form.dateOfBirth && isDobValid();
     if (step === 1) return form.heightCm >= 50 && form.weightKg >= 10;
     return true;
   };
@@ -95,9 +189,46 @@ export default function ProfilePage() {
                   placeholder="Abdulloh" />
               </div>
               <div>
-                <label htmlFor="profile-dob" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">{t('dateOfBirth')}</label>
-                <input id="profile-dob" type="date" value={form.dateOfBirth} onChange={(e) => updateForm('dateOfBirth', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">{t('dateOfBirth')}</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <select
+                    value={dobYear}
+                    onChange={(e) => setDobYear(e.target.value)}
+                    className="w-full px-2.5 py-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all text-xs font-semibold cursor-pointer"
+                  >
+                    <option value="">{locale === 'ru' ? 'Год' : locale === 'en' ? 'Year' : 'Yil'}</option>
+                    {years.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={dobMonth}
+                    onChange={(e) => setDobMonth(e.target.value)}
+                    className="w-full px-2.5 py-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all text-xs font-semibold cursor-pointer"
+                  >
+                    <option value="">{locale === 'ru' ? 'Месяц' : locale === 'en' ? 'Month' : 'Oy'}</option>
+                    {getMonthsList(locale).map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={dobDay}
+                    onChange={(e) => setDobDay(e.target.value)}
+                    className="w-full px-2.5 py-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500 transition-all text-xs font-semibold cursor-pointer"
+                  >
+                    <option value="">{locale === 'ru' ? 'День' : locale === 'en' ? 'Day' : 'Kun'}</option>
+                    {getDaysArray(dobYear, dobMonth).map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                {form.dateOfBirth && !isDobValid() && (
+                  <p className="text-red-500 text-[10px] font-bold mt-1.5 animate-pulse">
+                    {locale === 'ru' ? '⚠️ Дата рождения не может быть в будущем!' : locale === 'en' ? '⚠️ Date of birth cannot be in the future!' : '⚠️ Tug\'ilgan sana kelajakda bo\'lishi mumkin emas!'}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">{t('gender')}</label>

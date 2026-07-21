@@ -34,6 +34,10 @@ export class DashboardService {
           carbs: true,
           imageUrl: true,
           loggedAt: true,
+          portionSize: true,
+          ingredients: true,
+          healthAdvice: true,
+          portionBreakdown: true,
         },
       }),
     ]);

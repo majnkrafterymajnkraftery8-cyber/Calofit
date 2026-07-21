@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -23,6 +24,13 @@ export class ProfileService {
       throw new ConflictException({
         error: 'CONFLICT',
         message: 'Profil allaqachon mavjud',
+      });
+    }
+
+    if (new Date(dto.dateOfBirth) > new Date()) {
+      throw new BadRequestException({
+        error: 'BAD_REQUEST',
+        message: 'Tug\'ilgan sana kelajakda bo\'lishi mumkin emas',
       });
     }
 
@@ -66,6 +74,13 @@ export class ProfileService {
       throw new NotFoundException({
         error: 'NOT_FOUND',
         message: 'Profil topilmadi',
+      });
+    }
+
+    if (dto.dateOfBirth && new Date(dto.dateOfBirth) > new Date()) {
+      throw new BadRequestException({
+        error: 'BAD_REQUEST',
+        message: 'Tug\'ilgan sana kelajakda bo\'lishi mumkin emas',
       });
     }
 

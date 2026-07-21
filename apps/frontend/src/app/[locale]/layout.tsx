@@ -5,6 +5,7 @@ import { QueryProvider } from '@/providers/query-provider';
 import { AuthProvider } from '@/providers/auth-provider';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/providers/theme-provider';
+import EnderBackground from '@/components/EnderBackground';
 
 
 export default async function LocaleLayout({
@@ -41,6 +42,7 @@ export default async function LocaleLayout({
           <QueryProvider>
             <AuthProvider>
               <ThemeProvider>
+                <EnderBackground />
                 {children}
                 <Toaster
                   position="top-center"

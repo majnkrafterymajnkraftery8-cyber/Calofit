@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
-import { Camera, LogOut, TrendingUp, MessageSquare, Sparkles, Sun, Moon, Globe, ChevronDown, Check } from 'lucide-react';
+import { Camera, LogOut, TrendingUp, MessageSquare, Sparkles, Sun, Moon, Globe, ChevronDown, Check, X, Trash2 } from 'lucide-react';
 import { useTheme } from '@/providers/theme-provider';
+import { toast } from 'sonner';
 
 interface DashboardData {
   profile: { name: string | null; dailyCalorieGoal: number };
@@ -21,12 +22,16 @@ interface DashboardData {
     id: string;
     mealType: string;
     foodName: string;
+    portionSize?: string;
     calories: number;
     protein: number;
     fat: number;
     carbs: number;
     imageUrl: string | null;
     loggedAt: string;
+    ingredients?: string[];
+    healthAdvice?: string | null;
+    portionBreakdown?: string | null;
   }>;
 }
 
@@ -63,6 +68,23 @@ export default function DashboardPage({ params }: { params: { locale: string } }
     queryFn: async () => {
       const { data } = await api.get('/dashboard');
       return data;
+    },
+  });
+
+  const [selectedMealLog, setSelectedMealLog] = useState<any | null>(null);
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/meals/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast.success(locale === 'ru' ? 'Успешно удалено!' : locale === 'en' ? 'Deleted successfully!' : "O'chirildi!");
+      setSelectedMealLog(null);
+    },
+    onError: () => {
+      toast.error(locale === 'ru' ? 'Ошибка удаления' : locale === 'en' ? 'Failed to delete' : "O'chirishda xatolik");
     },
   });
 
@@ -227,7 +249,7 @@ export default function DashboardPage({ params }: { params: { locale: string } }
           </div>
 
           {/* Prominent Latest Analyzed Meal Card (Visual Centerpiece) */}
-          <div className="glass rounded-3xl p-6 shadow-xl relative overflow-hidden dark:bg-slate-900/50 dark:border-slate-800 transition-all hover-lift">
+          <div onClick={() => latestMealDisplay && setSelectedMealLog(latestMealDisplay)} className="glass rounded-3xl p-6 shadow-xl relative overflow-hidden dark:bg-slate-900/50 dark:border-slate-800 transition-all hover-lift cursor-pointer">
             <p className="text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-4">
               {uiText.latestAnalysisTitle}
             </p>
@@ -379,7 +401,7 @@ export default function DashboardPage({ params }: { params: { locale: string } }
             ) : (
               <div className="flex-1 space-y-3.5 overflow-y-auto max-h-[580px] pr-1">
                 {recentLogs.map((log) => (
-                  <div key={log.id} className="p-3.5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-gray-150/70 dark:border-slate-800/80 hover-lift flex items-center gap-3.5 shadow-sm">
+                  <div key={log.id} onClick={() => setSelectedMealLog(log)} className="p-3.5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-gray-150/70 dark:border-slate-800/80 hover-lift flex items-center gap-3.5 shadow-sm cursor-pointer">
                     {log.imageUrl ? (
                       <img src={log.imageUrl} alt={log.foodName} className="w-12 h-12 rounded-xl object-cover shrink-0" />
                     ) : (
@@ -419,6 +441,145 @@ export default function DashboardPage({ params }: { params: { locale: string } }
           {uiText.addMealBtn}
         </Link>
       </div>
+
+      {/* Detailed Modal Popup (Only opens when card is clicked) */}
+      {selectedMealLog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-md page-enter">
+          <div className="relative w-full max-w-lg glass rounded-3xl overflow-hidden shadow-2xl dark:bg-slate-900 dark:border-slate-800 border border-gray-150 flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200/40 dark:border-slate-800/40 flex items-center justify-between z-10 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{MEAL_EMOJI[selectedMealLog.mealType] || '🍽️'}</span>
+                <div>
+                  <h2 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">
+                    {locale === 'ru' ? 'Детали блюда' : locale === 'en' ? 'Meal Details' : 'Taom tafsilotlari'}
+                  </h2>
+                  <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
+                    {getMealTypeName(selectedMealLog.mealType)}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedMealLog(null)}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-all active:scale-95 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Photo & Main Name */}
+              <div className="flex flex-col sm:flex-row gap-5 items-center">
+                {selectedMealLog.imageUrl && (
+                  <div className="w-28 h-28 rounded-2xl overflow-hidden shrink-0 border border-gray-150/60 dark:border-slate-800/80 shadow-md bg-slate-100 dark:bg-slate-950">
+                    <img src={selectedMealLog.imageUrl} alt={selectedMealLog.foodName} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="text-center sm:text-left min-w-0">
+                  <h3 className="text-base font-black text-gray-900 dark:text-white leading-tight">{selectedMealLog.foodName}</h3>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 font-semibold mt-1 uppercase tracking-wide">
+                    ⚖️ {selectedMealLog.portionSize || 'N/A'}
+                  </p>
+                  <p className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-black border border-red-100/50 dark:border-red-950/30">
+                    🔥 {Math.round(Number(selectedMealLog.calories))} kcal
+                  </p>
+                </div>
+              </div>
+
+              {/* Nutrients Breakdown Progress bars */}
+              <div className="bg-white/40 dark:bg-slate-950/20 p-4 rounded-2xl border border-gray-100/50 dark:border-slate-800/80 space-y-3">
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">
+                  {locale === 'ru' ? 'Состав макронутриентов' : locale === 'en' ? 'Macronutrient breakdown' : 'Makronutrient tarkibi'}
+                </p>
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Protein */}
+                  <div>
+                    <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wide">{uiText.protein}</span>
+                    <p className="text-sm font-black text-gray-900 dark:text-white">{Math.round(Number(selectedMealLog.protein))}g</p>
+                  </div>
+                  {/* Fat */}
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">{uiText.fat}</span>
+                    <p className="text-sm font-black text-gray-900 dark:text-white">{Math.round(Number(selectedMealLog.fat))}g</p>
+                  </div>
+                  {/* Carbs */}
+                  <div>
+                    <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wide">{uiText.carbs}</span>
+                    <p className="text-sm font-black text-gray-900 dark:text-white">{Math.round(Number(selectedMealLog.carbs))}g</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ingredients list */}
+              {selectedMealLog.ingredients && selectedMealLog.ingredients.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold text-gray-455 dark:text-slate-400 uppercase tracking-wider">
+                    🍎 {locale === 'ru' ? 'Ингредиенты' : locale === 'en' ? 'Ingredients' : 'Tarkibi'}
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedMealLog.ingredients.map((ing: string, idx: number) => (
+                      <span key={idx} className="px-2.5 py-1 bg-green-50 dark:bg-emerald-950/20 text-green-700 dark:text-emerald-450 rounded-xl text-xs font-semibold border border-green-150/40 dark:border-emerald-900/25">
+                        {ing}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Portion breakdown */}
+              {selectedMealLog.portionBreakdown && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold text-gray-455 dark:text-slate-400 uppercase tracking-wider">
+                    ⚖️ {locale === 'ru' ? 'Распределение веса' : locale === 'en' ? 'Weight breakdown' : 'Vazn taqsimoti'}
+                  </h4>
+                  <p className="text-xs text-gray-655 dark:text-slate-350 leading-relaxed font-bold bg-white/40 dark:bg-slate-950/40 p-4 rounded-2xl border border-gray-100/50 dark:border-slate-800/80">
+                    {selectedMealLog.portionBreakdown}
+                  </p>
+                </div>
+              )}
+
+              {/* Health advice */}
+              {selectedMealLog.healthAdvice && (
+                <div className="space-y-2 bg-gradient-to-br from-emerald-500/5 via-emerald-500/5 to-transparent dark:from-slate-900/30 dark:to-transparent border border-green-200/40 dark:border-slate-800 rounded-3xl p-5">
+                  <h4 className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles size={12} className="text-emerald-500" />
+                    {locale === 'ru' ? 'Рекомендация ИИ Диетолога' : locale === 'en' ? 'AI Dietologist recommendation' : 'AI Dietolog tavsiyasi'}
+                  </h4>
+                  <p className="text-xs text-emerald-900/80 dark:text-slate-300 leading-relaxed font-semibold bg-white/80 dark:bg-slate-900/80 p-4 rounded-2xl border border-emerald-100/40 dark:border-slate-800 shadow-sm whitespace-pre-line">
+                    {selectedMealLog.healthAdvice}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer / Delete Log Action */}
+            <div className="px-6 py-4 border-t border-gray-200/40 dark:border-slate-800/40 bg-gray-50/40 dark:bg-slate-950/20 flex items-center justify-between shrink-0">
+              <button
+                onClick={() => setSelectedMealLog(null)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-all active:scale-95 cursor-pointer"
+              >
+                {locale === 'ru' ? 'Закрыть' : locale === 'en' ? 'Close' : 'Yopish'}
+              </button>
+              
+              <button
+                onClick={() => deleteMutation.mutate(selectedMealLog.id)}
+                disabled={deleteMutation.isPending}
+                className="px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Trash2 size={14} />
+                )}
+                {locale === 'ru' ? 'Удалить' : locale === 'en' ? 'Delete' : 'O\'chirish'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </main>
   );
 }

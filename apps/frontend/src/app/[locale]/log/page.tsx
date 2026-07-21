@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
-import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Sparkles, Trash2, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Sparkles, Trash2, X, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useParams } from 'next/navigation';
 
@@ -56,6 +56,9 @@ export default function LogPage() {
   // Selected meal log for detailed modal view
   const [selectedMealLog, setSelectedMealLog] = useState<MealLog | null>(null);
 
+  // Search query state
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Fetch logs for the selected date
   const { data, isLoading } = useQuery<LogData>({
     queryKey: ['daily-logs', selectedDate],
@@ -64,6 +67,16 @@ export default function LogPage() {
       return data;
     },
   });
+
+  const filteredLogs = data?.logs.filter((log) => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    return (
+      log.foodName.toLowerCase().includes(query) ||
+      log.mealType.toLowerCase().includes(query) ||
+      (log.ingredients && log.ingredients.some(ing => ing.toLowerCase().includes(query)))
+    );
+  }) || [];
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -269,15 +282,48 @@ export default function LogPage() {
               </div>
             )}
 
+            {/* Search Input */}
+            {data.logs.length > 0 && (
+              <div className="relative mb-5">
+                <input
+                  type="text"
+                  placeholder={
+                    locale === 'ru' ? 'Поиск съеденной еды...' :
+                    locale === 'en' ? 'Search logged food...' :
+                    'Qabul qilingan taomlarni qidirish...'
+                  }
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-3 rounded-2xl border border-gray-250 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-xs font-semibold text-gray-700 dark:text-slate-350 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-sm cursor-text"
+                />
+                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-gray-450 hover:text-gray-900 dark:hover:text-white transition-all"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Meals Log List */}
             {data.logs.length === 0 ? (
               <div className="glass rounded-3xl p-12 text-center shadow-xl dark:bg-slate-900/50 dark:border-slate-800 flex flex-col justify-center items-center space-y-3">
                 <span className="text-3xl">🍽️</span>
                 <p className="text-xs font-bold text-gray-500 dark:text-slate-400">{t('no_meals_date')}</p>
               </div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="glass rounded-3xl p-12 text-center shadow-xl dark:bg-slate-900/50 dark:border-slate-800 flex flex-col justify-center items-center space-y-3">
+                <span className="text-3xl">🔍</span>
+                <p className="text-xs font-bold text-gray-505 dark:text-slate-400">
+                  {locale === 'ru' ? 'Ничего не найдено по вашему запросу' : locale === 'en' ? 'No logs match your search' : 'Qidiruv bo\'yicha hech narsa topilmadi'}
+                </p>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {data.logs.map((log) => {
+                {filteredLogs.map((log) => {
                   const mealDetails = getMealTypeDetails(log.mealType);
                   return (
                     <div
