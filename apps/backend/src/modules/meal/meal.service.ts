@@ -142,15 +142,21 @@ export class MealService {
     const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
     const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
-    const logs = await this.prisma.mealLog.findMany({
-      where: {
-        userId,
-        loggedAt: { gte: startOfDay, lte: endOfDay },
-      },
-      orderBy: { loggedAt: 'asc' },
-    });
+    const [profile, logs] = await Promise.all([
+      this.prisma.profile.findUnique({
+        where: { userId },
+        select: { dailyCalorieGoal: true },
+      }),
+      this.prisma.mealLog.findMany({
+        where: {
+          userId,
+          loggedAt: { gte: startOfDay, lte: endOfDay },
+        },
+        orderBy: { loggedAt: 'asc' },
+      }),
+    ]);
 
-    const summary = logs.reduce(
+    const rawSummary = logs.reduce(
       (acc, log) => ({
         totalCalories: acc.totalCalories + Number(log.calories),
         totalProtein: acc.totalProtein + Number(log.protein),
@@ -160,6 +166,19 @@ export class MealService {
       }),
       { totalCalories: 0, totalProtein: 0, totalFat: 0, totalCarbs: 0, logCount: 0 },
     );
+
+    const dailyCalorieGoal = profile?.dailyCalorieGoal ?? 2000;
+
+    const summary = {
+      totalCalories: Math.round(rawSummary.totalCalories * 100) / 100,
+      totalProtein: Math.round(rawSummary.totalProtein * 100) / 100,
+      totalFat: Math.round(rawSummary.totalFat * 100) / 100,
+      totalCarbs: Math.round(rawSummary.totalCarbs * 100) / 100,
+      logCount: rawSummary.logCount,
+      dailyCalorieGoal,
+      remainingCalories: Math.max(0, dailyCalorieGoal - rawSummary.totalCalories),
+      diffCalories: Math.round((rawSummary.totalCalories - dailyCalorieGoal) * 100) / 100,
+    };
 
     return { date: dateStr, summary, logs };
   }
