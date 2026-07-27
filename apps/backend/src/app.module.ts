@@ -14,6 +14,7 @@ import { HealthModule } from './modules/health/health.module';
 import { FeedbackModule } from './modules/feedback/feedback.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { MailModule } from './modules/mail/mail.module';
+import { TelegramModule } from './modules/telegram/telegram.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -44,6 +45,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     FeedbackModule,
     ChatModule,
     MailModule,
+    TelegramModule,
   ],
   controllers: [AppController],
   providers: [
