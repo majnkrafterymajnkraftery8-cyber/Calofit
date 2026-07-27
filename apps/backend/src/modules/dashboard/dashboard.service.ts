@@ -16,7 +16,15 @@ export class DashboardService {
     const [profile, logs] = await Promise.all([
       this.prisma.profile.findUnique({
         where: { userId },
-        select: { name: true, dailyCalorieGoal: true },
+        select: {
+          name: true,
+          dateOfBirth: true,
+          gender: true,
+          heightCm: true,
+          weightKg: true,
+          goal: true,
+          dailyCalorieGoal: true,
+        },
       }),
       this.prisma.mealLog.findMany({
         where: {
@@ -58,10 +66,27 @@ export class DashboardService {
     const progress = Math.min(100, Math.round((consumed.calories / dailyGoal) * 100));
 
     return {
-      profile: {
-        name: profile?.name ?? null,
-        dailyCalorieGoal: dailyGoal,
-      },
+      profile: profile
+        ? {
+            name: profile.name,
+            dateOfBirth: profile.dateOfBirth
+              ? profile.dateOfBirth.toISOString().split('T')[0]
+              : null,
+            gender: profile.gender,
+            heightCm: profile.heightCm,
+            weightKg: Number(profile.weightKg),
+            goal: profile.goal,
+            dailyCalorieGoal: dailyGoal,
+          }
+        : {
+            name: null,
+            dateOfBirth: null,
+            gender: 'MALE',
+            heightCm: 170,
+            weightKg: 70,
+            goal: 'MAINTAIN',
+            dailyCalorieGoal: dailyGoal,
+          },
       today: {
         date: dateStr,
         consumed: {

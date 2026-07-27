@@ -120,15 +120,22 @@ export class ProfileService {
     weightKg: number;
     goal: Goal;
   }): number {
-    const age = differenceInYears(new Date(), new Date(dto.dateOfBirth));
-    const weight = Number(dto.weightKg);
+    let age = differenceInYears(new Date(), new Date(dto.dateOfBirth));
+    if (isNaN(age) || age < 5 || age > 120) {
+      age = 25; // Безопасное значение по умолчанию
+    }
+
+    const weight = Number(dto.weightKg) || 70;
+    const height = Number(dto.heightCm) || 170;
 
     const bmr =
       dto.gender === Gender.MALE
-        ? 10 * weight + 6.25 * dto.heightCm - 5 * age + 5
-        : 10 * weight + 6.25 * dto.heightCm - 5 * age - 161;
+        ? 10 * weight + 6.25 * height - 5 * age + 5
+        : 10 * weight + 6.25 * height - 5 * age - 161;
 
-    const tdee = Math.round(bmr * 1.55); // O'rtacha faol
+    // Использование адаптированного коэффициента активности
+    const activityMultiplier = weight > 140 ? 1.35 : 1.55;
+    const tdee = Math.round(bmr * activityMultiplier);
 
     const adjustments: Record<Goal, number> = {
       [Goal.LOSE_WEIGHT]: -500,
@@ -136,7 +143,9 @@ export class ProfileService {
       [Goal.GAIN_WEIGHT]: 300,
     };
 
-    const goal = Math.round(tdee + adjustments[dto.goal]);
-    return Math.max(1200, goal); // Minimum 1200 kcal (tibbiy xavfsizlik)
+    const target = Math.round(tdee + (adjustments[dto.goal] ?? 0));
+
+    // Безопасный диапазон нормы (1200 - 5000 ккал) для предотвращения аномалий
+    return Math.min(5000, Math.max(1200, target));
   }
 }

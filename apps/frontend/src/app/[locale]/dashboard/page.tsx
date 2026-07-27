@@ -6,12 +6,22 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
-import { Camera, LogOut, TrendingUp, MessageSquare, Sparkles, Sun, Moon, Globe, ChevronDown, Check, X, Trash2 } from 'lucide-react';
+import { Camera, LogOut, TrendingUp, MessageSquare, Sparkles, Sun, Moon, Globe, ChevronDown, Check, X, Trash2, User, Scale, Ruler, Calendar, Target, Edit3, Loader2 } from 'lucide-react';
 import { useTheme } from '@/providers/theme-provider';
 import { toast } from 'sonner';
 
+interface ProfileInfo {
+  name: string | null;
+  dateOfBirth?: string | null;
+  gender?: 'MALE' | 'FEMALE';
+  heightCm?: number;
+  weightKg?: number;
+  goal?: 'LOSE_WEIGHT' | 'MAINTAIN' | 'GAIN_WEIGHT';
+  dailyCalorieGoal: number;
+}
+
 interface DashboardData {
-  profile: { name: string | null; dailyCalorieGoal: number };
+  profile: ProfileInfo;
   today: {
     date: string;
     consumed: { calories: number; protein: number; fat: number; carbs: number };
@@ -56,12 +66,15 @@ export default function DashboardPage({ params }: { params: { locale: string } }
   const router = useRouter();
   const [locale, setLocale] = useState('uz');
   const [langOpen, setLangOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     Promise.resolve(params).then((resolved) => {
       setLocale(resolved?.locale || 'uz');
     });
   }, [params]);
+
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
@@ -72,7 +85,46 @@ export default function DashboardPage({ params }: { params: { locale: string } }
   });
 
   const [selectedMealLog, setSelectedMealLog] = useState<any | null>(null);
-  const queryClient = useQueryClient();
+
+  // Profile Form state for editing inside modal
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    dobYear: '',
+    dobMonth: '',
+    dobDay: '',
+    gender: 'MALE' as 'MALE' | 'FEMALE',
+    heightCm: 170,
+    weightKg: 70,
+    goal: 'MAINTAIN' as 'LOSE_WEIGHT' | 'MAINTAIN' | 'GAIN_WEIGHT',
+  });
+
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Populate profile form whenever dashboard data updates
+  useEffect(() => {
+    if (data?.profile) {
+      const p = data.profile;
+      let y = '', m = '', d = '';
+      if (p.dateOfBirth) {
+        const dateObj = new Date(p.dateOfBirth);
+        if (!isNaN(dateObj.getTime())) {
+          y = String(dateObj.getFullYear());
+          m = String(dateObj.getMonth() + 1);
+          d = String(dateObj.getDate());
+        }
+      }
+      setProfileForm({
+        name: p.name || '',
+        dobYear: y,
+        dobMonth: m,
+        dobDay: d,
+        gender: p.gender || 'MALE',
+        heightCm: p.heightCm || 170,
+        weightKg: p.weightKg || 70,
+        goal: p.goal || 'MAINTAIN',
+      });
+    }
+  }, [data?.profile]);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -97,7 +149,93 @@ export default function DashboardPage({ params }: { params: { locale: string } }
   }
 
   const { profile, today, recentLogs } = data;
-  const progressColor = today.progress > 100 ? 'from-red-500 to-red-650' : 'from-emerald-500 to-green-600';
+
+  // Calculate BMI for modal & header
+  const hM = (profileForm.heightCm || 170) / 100;
+  const currentBmi = hM > 0 ? (profileForm.weightKg / (hM * hM)).toFixed(1) : '0';
+
+  const getBmiCategory = (bmiVal: number) => {
+    if (bmiVal < 18.5) return { label: locale === 'ru' ? 'Дефицит веса' : locale === 'en' ? 'Underweight' : 'Vazn kamligi', color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/30' };
+    if (bmiVal < 25) return { label: locale === 'ru' ? 'Норма' : locale === 'en' ? 'Healthy' : 'Me\'yor', color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30' };
+    if (bmiVal < 30) return { label: locale === 'ru' ? 'Избыток веса' : locale === 'en' ? 'Overweight' : 'Ortiqcha vazn', color: 'text-orange-500 bg-orange-50 dark:bg-orange-950/30' };
+    return { label: locale === 'ru' ? 'Ожирение' : locale === 'en' ? 'Obesity' : 'Semizlik', color: 'text-red-500 bg-red-50 dark:bg-red-950/30' };
+  };
+
+  const bmiCategory = getBmiCategory(Number(currentBmi));
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 110 }, (_, i) => currentYear - i);
+
+  const getMonthsList = (lang: string) => {
+    if (lang === 'ru') {
+      return [
+        { value: '1', label: 'Январь' }, { value: '2', label: 'Февраль' }, { value: '3', label: 'Март' },
+        { value: '4', label: 'Апрель' }, { value: '5', label: 'Май' }, { value: '6', label: 'Июнь' },
+        { value: '7', label: 'Июль' }, { value: '8', label: 'Август' }, { value: '9', label: 'Сентябрь' },
+        { value: '10', label: 'Октябрь' }, { value: '11', label: 'Ноябрь' }, { value: '12', label: 'Декабрь' },
+      ];
+    }
+    return [
+      { value: '1', label: 'Yanvar' }, { value: '2', label: 'Fevral' }, { value: '3', label: 'Mart' },
+      { value: '4', label: 'Aprel' }, { value: '5', label: 'May' }, { value: '6', label: 'Iyun' },
+      { value: '7', label: 'Iyul' }, { value: '8', label: 'Avgust' }, { value: '9', label: 'Sentyabr' },
+      { value: '10', label: 'Oktyabr' }, { value: '11', label: 'Noyabr' }, { value: '12', label: 'Dekabr' },
+    ];
+  };
+
+  const getDaysArray = (yStr: string, mStr: string) => {
+    const y = parseInt(yStr) || currentYear;
+    const m = parseInt(mStr) || 1;
+    const daysInMonth = new Date(y, m, 0).getDate();
+    return Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  };
+
+  // Handle saving profile from inside Dashboard modal
+  const handleSaveProfileFromDashboard = async () => {
+    setIsSavingProfile(true);
+    try {
+      let dateOfBirth: string | undefined = undefined;
+      if (profileForm.dobYear && profileForm.dobMonth && profileForm.dobDay) {
+        const m = profileForm.dobMonth.padStart(2, '0');
+        const d = profileForm.dobDay.padStart(2, '0');
+        dateOfBirth = `${profileForm.dobYear}-${m}-${d}`;
+      }
+
+      const payload = {
+        name: profileForm.name,
+        ...(dateOfBirth && { dateOfBirth }),
+        gender: profileForm.gender,
+        heightCm: Number(profileForm.heightCm),
+        weightKg: Number(profileForm.weightKg),
+        goal: profileForm.goal,
+      };
+
+      const { data: updated } = await api.patch('/profile', payload);
+
+      // Re-fetch dashboard & invalidation
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+
+      toast.success(
+        locale === 'ru'
+          ? `Профиль сохранен! Новая цель: ${updated.dailyCalorieGoal} ккал/день`
+          : locale === 'en'
+          ? `Profile updated! New goal: ${updated.dailyCalorieGoal} kcal/day`
+          : `Profil yangilandi! Yangi kkal me'yori: ${updated.dailyCalorieGoal} kkal/kun`
+      );
+
+      setIsProfileModalOpen(false);
+    } catch {
+      toast.error(
+        locale === 'ru'
+          ? 'Ошибка обновления профиля'
+          : locale === 'en'
+          ? 'Failed to update profile'
+          : 'Profilni yangilashda xatolik'
+      );
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   // Humanized Translations
   const uiText = {
@@ -137,7 +275,6 @@ export default function DashboardPage({ params }: { params: { locale: string } }
     return `Oqsil: ${Math.round(p)}g · Yog': ${Math.round(f)}g · Ugl: ${Math.round(c)}g`;
   };
 
-  // Find the latest image from logged meals
   const latestLogWithImage = recentLogs.find(log => log.imageUrl);
   const latestMealDisplay = latestLogWithImage || recentLogs[0];
 
@@ -164,6 +301,13 @@ export default function DashboardPage({ params }: { params: { locale: string } }
             <Sparkles size={13} className="text-emerald-500" />
             {locale === 'ru' ? 'ИИ Диетолог' : locale === 'en' ? 'AI Dietician' : 'Sun\'iy intellekt'}
           </Link>
+          <button
+            onClick={() => setIsProfileModalOpen(true)}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-450 flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <User size={13} className="text-emerald-500" />
+            {locale === 'ru' ? 'Профиль' : locale === 'en' ? 'Profile' : 'Profil'}
+          </button>
           <Link href="/support" className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-450 transition-all">
             {locale === 'ru' ? 'Помощь' : locale === 'en' ? 'Support' : 'Yordam'}
           </Link>
@@ -171,6 +315,18 @@ export default function DashboardPage({ params }: { params: { locale: string } }
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          {/* User Profile / Account Button */}
+          <button
+            onClick={() => setIsProfileModalOpen(true)}
+            className="px-3 py-2 rounded-xl text-xs font-bold border border-gray-250 dark:border-slate-800 bg-white dark:bg-[#1e293b] text-slate-700 dark:text-slate-200 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm active:scale-95 duration-200 cursor-pointer"
+            title={locale === 'ru' ? 'Профиль и Статистика' : 'Profile & Stats'}
+          >
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm">
+              {profile.name ? profile.name.charAt(0).toUpperCase() : <User size={12} />}
+            </div>
+            <span className="hidden sm:inline font-bold">{profile.name ?? 'Account'}</span>
+          </button>
+
           {/* Language Dropdown */}
           <div className="relative">
             <button
@@ -227,12 +383,21 @@ export default function DashboardPage({ params }: { params: { locale: string } }
           <div className="glass rounded-3xl p-6 shadow-xl relative overflow-hidden bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/5 dark:to-transparent border border-emerald-500/10 hover-lift">
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {locale === 'ru'
-                    ? `Привет, ${profile.name ?? 'Пользователь'} 👋`
-                    : locale === 'en'
-                      ? `Hello, ${profile.name ?? 'User'} 👋`
-                      : `Salom, ${profile.name ?? 'Foydalanuvchi'} 👋`}
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                  <span>
+                    {locale === 'ru'
+                      ? `Привет, ${profile.name ?? 'Пользователь'} 👋`
+                      : locale === 'en'
+                        ? `Hello, ${profile.name ?? 'User'} 👋`
+                        : `Salom, ${profile.name ?? 'Foydalanuvchi'} 👋`}
+                  </span>
+                  <button
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="p-1.5 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-emerald-50 text-emerald-600 transition-all text-xs font-bold border border-emerald-500/20"
+                    title={locale === 'ru' ? 'Редактировать профиль' : 'Edit Profile'}
+                  >
+                    <Edit3 size={14} />
+                  </button>
                 </h1>
                 <p className="text-xs text-slate-650 dark:text-slate-350 mt-1 font-semibold">
                   {locale === 'ru'
@@ -242,13 +407,17 @@ export default function DashboardPage({ params }: { params: { locale: string } }
                       : 'Bugungi ovqatlanish balansingiz va statistika.'}
                 </p>
               </div>
-              <div className="self-start sm:self-center px-4 py-2 rounded-2xl text-xs font-black bg-white dark:bg-[#1e293b] text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-md">
-                {uiText.dailyGoal} {profile.dailyCalorieGoal} {locale === 'ru' ? 'ккал' : 'kcal'}
-              </div>
+              <button
+                onClick={() => setIsProfileModalOpen(true)}
+                className="self-start sm:self-center px-4 py-2.5 rounded-2xl text-xs font-black bg-white dark:bg-[#1e293b] text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <span>{uiText.dailyGoal} {profile.dailyCalorieGoal} {locale === 'ru' ? 'ккал' : 'kcal'}</span>
+                <Edit3 size={12} className="opacity-70" />
+              </button>
             </div>
           </div>
 
-          {/* Prominent Latest Analyzed Meal Card (Visual Centerpiece) */}
+          {/* Prominent Latest Analyzed Meal Card */}
           <div onClick={() => latestMealDisplay && setSelectedMealLog(latestMealDisplay)} className="glass rounded-3xl p-6 shadow-xl relative overflow-hidden dark:bg-slate-900/50 dark:border-slate-800 transition-all hover-lift cursor-pointer">
             <p className="text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-4">
               {uiText.latestAnalysisTitle}
@@ -355,7 +524,7 @@ export default function DashboardPage({ params }: { params: { locale: string } }
             </div>
           </div>
 
-          {/* Macro Progress Cards Row (3-column grid) */}
+          {/* Macro Progress Cards Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               { label: uiText.protein, value: today.consumed.protein, max: 150, color: 'from-blue-400 to-blue-600', bg: 'bg-blue-50/40 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20' },
@@ -380,7 +549,7 @@ export default function DashboardPage({ params }: { params: { locale: string } }
 
         </div>
 
-        {/* Right Side: Recent Logs (Grid Span 4) */}
+        {/* Right Side: Recent Logs */}
         <div className="lg:col-span-4 space-y-6">
           <div className="glass rounded-3xl p-6 shadow-xl dark:bg-slate-900/50 dark:border-slate-800 flex flex-col h-full min-h-[400px] hover-lift">
             <div className="flex items-center justify-between mb-4 px-1">
@@ -434,7 +603,7 @@ export default function DashboardPage({ params }: { params: { locale: string } }
       </div>
 
       {/* Bottom Floating Action FAB */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
         <Link href="/analyze"
           className="flex items-center gap-2.5 px-8 py-4.5 rounded-full font-black text-white bg-gradient-to-r from-emerald-500 to-green-600 shadow-2xl shadow-green-500/40 hover:shadow-green-500/60 hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer">
           <Camera size={20} className="group-hover:rotate-12 transition-transform" />
@@ -442,7 +611,273 @@ export default function DashboardPage({ params }: { params: { locale: string } }
         </Link>
       </div>
 
-      {/* Detailed Modal Popup (Only opens when card is clicked) */}
+      {/* PROFILE & ACCOUNT INFO MODAL (Opened by avatar / user button) */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md page-enter">
+          <div className="relative w-full max-w-xl glass rounded-3xl overflow-hidden shadow-2xl dark:bg-slate-900 dark:border-slate-800 border border-gray-150 flex flex-col max-h-[92vh]">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200/40 dark:border-slate-800/40 flex items-center justify-between z-10 shrink-0 bg-white/60 dark:bg-slate-900/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 text-white flex items-center justify-center text-base font-black shadow-md">
+                  {profileForm.name ? profileForm.name.charAt(0).toUpperCase() : <User size={18} />}
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-gray-900 dark:text-white leading-tight">
+                    {locale === 'ru' ? 'Профиль и Аккаунт' : locale === 'en' ? 'Account & Profile' : 'Profil va Hisob'}
+                  </h2>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
+                    {locale === 'ru' ? 'Статистика и редактирование' : 'Stats & Parameters'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              
+              {/* Profile Analytical Header inside modal */}
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-950/30 dark:via-slate-950 dark:to-slate-950 border border-emerald-500/20 grid grid-cols-2 sm:grid-cols-3 gap-3 text-center">
+                <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-gray-100 dark:border-slate-800">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">BMI / ИМТ</span>
+                  <span className="text-lg font-black text-gray-900 dark:text-white">{currentBmi}</span>
+                  <span className={`block text-[8px] font-extrabold px-1.5 py-0.5 rounded-full mt-1 ${bmiCategory.color}`}>
+                    {bmiCategory.label}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-emerald-500 text-white shadow-md">
+                  <span className="text-[9px] font-bold text-emerald-100 uppercase tracking-wider block">
+                    {locale === 'ru' ? 'Цель калорий' : 'Calorie Goal'}
+                  </span>
+                  <span className="text-lg font-black">{profile.dailyCalorieGoal}</span>
+                  <span className="block text-[8px] font-extrabold text-emerald-100 mt-1">
+                    {locale === 'ru' ? 'ккал/день' : 'kcal/day'}
+                  </span>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1 p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-gray-100 dark:border-slate-800 flex flex-col justify-center">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
+                    {locale === 'ru' ? 'Текущий вес' : 'Weight'}
+                  </span>
+                  <span className="text-lg font-black text-gray-900 dark:text-white">{profileForm.weightKg} kg</span>
+                  <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    {profileForm.heightCm} cm
+                  </span>
+                </div>
+              </div>
+
+              {/* Editable Fields Form */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                  {locale === 'ru' ? 'Изменить параметры' : 'Edit Parameters'}
+                </h3>
+
+                {/* Name */}
+                <div>
+                  <label htmlFor="modal-name" className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
+                    {locale === 'ru' ? 'Имя и Фамилия' : 'Full Name'}
+                  </label>
+                  <input
+                    id="modal-name"
+                    type="text"
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                    placeholder="Абдуллох"
+                  />
+                </div>
+
+                {/* Gender */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
+                    {locale === 'ru' ? 'Пол' : 'Gender'}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['MALE', 'FEMALE'] as const).map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setProfileForm((prev) => ({ ...prev, gender: g }))}
+                        className={`py-2.5 rounded-xl font-bold text-xs transition-all border ${
+                          profileForm.gender === g
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-500/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                            : 'border-gray-200 bg-white text-gray-600 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
+                        }`}
+                      >
+                        {g === 'MALE' ? (locale === 'ru' ? 'Мужчина 👨' : 'Male 👨') : (locale === 'ru' ? 'Женщина 👩' : 'Female 👩')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Birth Date */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                    <Calendar size={13} className="text-emerald-500" />
+                    {locale === 'ru' ? 'Дата рождения' : 'Date of Birth'}
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <select
+                      value={profileForm.dobYear}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, dobYear: e.target.value }))}
+                      className="px-2.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white font-semibold text-xs cursor-pointer"
+                    >
+                      <option value="">{locale === 'ru' ? 'Год' : 'Year'}</option>
+                      {years.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={profileForm.dobMonth}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, dobMonth: e.target.value }))}
+                      className="px-2.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white font-semibold text-xs cursor-pointer"
+                    >
+                      <option value="">{locale === 'ru' ? 'Месяц' : 'Month'}</option>
+                      {getMonthsList(locale).map((m) => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={profileForm.dobDay}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, dobDay: e.target.value }))}
+                      className="px-2.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white font-semibold text-xs cursor-pointer"
+                    >
+                      <option value="">{locale === 'ru' ? 'День' : 'Day'}</option>
+                      {getDaysArray(profileForm.dobYear, profileForm.dobMonth).map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Height */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-gray-200/60 dark:border-slate-800 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label htmlFor="modal-height-num" className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                      <Ruler size={13} className="text-emerald-500" />
+                      {locale === 'ru' ? 'Рост (см)' : 'Height (cm)'}
+                    </label>
+                    <input
+                      id="modal-height-num"
+                      type="number"
+                      min={100}
+                      max={260}
+                      value={profileForm.heightCm}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, heightCm: Number(e.target.value) }))}
+                      className="w-16 px-2.5 py-1 rounded-xl text-center font-extrabold text-xs border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400"
+                    />
+                  </div>
+                  <input
+                    type="range"
+                    min={100}
+                    max={260}
+                    value={profileForm.heightCm}
+                    onChange={(e) => setProfileForm((prev) => ({ ...prev, heightCm: Number(e.target.value) }))}
+                    className="w-full h-1.5 bg-gray-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                </div>
+
+                {/* Weight */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-gray-200/60 dark:border-slate-800 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label htmlFor="modal-weight-num" className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                      <Scale size={13} className="text-emerald-500" />
+                      {locale === 'ru' ? 'Вес (кг)' : 'Weight (kg)'}
+                    </label>
+                    <input
+                      id="modal-weight-num"
+                      type="number"
+                      min={30}
+                      max={300}
+                      step={0.1}
+                      value={profileForm.weightKg}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, weightKg: Number(e.target.value) }))}
+                      className="w-16 px-2.5 py-1 rounded-xl text-center font-extrabold text-xs border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400"
+                    />
+                  </div>
+                  <input
+                    type="range"
+                    min={30}
+                    max={300}
+                    step={0.5}
+                    value={profileForm.weightKg}
+                    onChange={(e) => setProfileForm((prev) => ({ ...prev, weightKg: Number(e.target.value) }))}
+                    className="w-full h-1.5 bg-gray-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                </div>
+
+                {/* Goal Selection */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <Target size={13} className="text-emerald-500" />
+                    {locale === 'ru' ? 'Цель питания' : 'Nutritional Goal'}
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { value: 'LOSE_WEIGHT', label: locale === 'ru' ? 'Сброс' : 'Lose', emoji: '🏃', desc: '-500 kcal' },
+                      { value: 'MAINTAIN', label: locale === 'ru' ? 'Баланс' : 'Maintain', emoji: '⚖️', desc: 'Stable' },
+                      { value: 'GAIN_WEIGHT', label: locale === 'ru' ? 'Набор' : 'Gain', emoji: '💪', desc: '+300 kcal' },
+                    ] as const).map((g) => (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() => setProfileForm((prev) => ({ ...prev, goal: g.value }))}
+                        className={`p-3 rounded-xl text-center transition-all border ${
+                          profileForm.goal === g.value
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-800 dark:border-emerald-500/60 dark:bg-emerald-950/40 dark:text-emerald-400 shadow-sm'
+                            : 'border-gray-200 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300 dark:border-slate-800'
+                        }`}
+                      >
+                        <span className="text-xl block mb-1">{g.emoji}</span>
+                        <p className="font-bold text-[11px] leading-tight">{g.label}</p>
+                        <p className="text-[9px] text-gray-400 font-semibold mt-0.5">{g.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Modal Footer / Save Action */}
+            <div className="px-6 py-4 border-t border-gray-200/40 dark:border-slate-800/40 bg-gray-50/60 dark:bg-slate-950/40 flex items-center justify-between shrink-0">
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-gray-600 dark:text-slate-400 transition-all cursor-pointer"
+              >
+                {locale === 'ru' ? 'Отмена' : 'Cancel'}
+              </button>
+
+              <button
+                onClick={handleSaveProfileFromDashboard}
+                disabled={isSavingProfile}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white text-xs font-black transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isSavingProfile ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Check size={14} />
+                )}
+                {isSavingProfile
+                  ? (locale === 'ru' ? 'Перерасчет...' : 'Recalculating...')
+                  : (locale === 'ru' ? 'Сохранить и пересчитать' : 'Save & Recalculate')}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Log Modal Popup (Only opens when card is clicked) */}
       {selectedMealLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-md page-enter">
           <div className="relative w-full max-w-lg glass rounded-3xl overflow-hidden shadow-2xl dark:bg-slate-900 dark:border-slate-800 border border-gray-150 flex flex-col max-h-[90vh]">
