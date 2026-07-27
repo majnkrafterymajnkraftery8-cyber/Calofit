@@ -3,35 +3,87 @@ import { ConfigService } from '@nestjs/config';
 import { AiService } from '../ai/ai.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
-const MORNING_PHRASES = [
-  'Доброе утро! ☀️ Как спалось? Пора заправить организм энергией! Что у тебя сегодня вкусненького на завтрак? Загружай фото или загляни в CaloFit! 🍳',
-  'С добрым утром, чемчик! 🌅 Завтрак — главный источник бодрости. Чем сегодня порадовал свой организм? Отправляй фото — я всё рассчитаю! 🥞',
-  'Привет-привет! ☕ Утренний заряд энергии — залог успешного дня. Поделись, чем позавтракал? 🥪',
-  'Доброе утречко! 🍳 Завтрак — это основа дня! Поделись фоточкой тарелочки, а я посчитаю калории и подкажу полезность! 🥑',
-  'Утро доброе! 🥐 Чашка кофе и сбалансированный завтрак — и день удался! Что у тебя сегодня на столе?',
-];
+type SupportedLang = 'uz' | 'ru' | 'en';
 
-const LUNCH_PHRASES = [
-  'Привет! Время обеденного перерыва 🥗 Чем порадуешь свой организм? Сделай фото блюда — я всё посчитаю! 📸',
-  'Обед — время восполнить силы! 🍲 Что аппетитного на тарелке? Загружай фото в CaloFit!',
-  'Эй, пупс, не забудь пообедать! 🍕 Организму нужны белки и углеводы. Что вкусненького у тебя сегодня?',
-  'Середина дня — самое время подкрепиться! 🥗 Поделись своим обедом — и я сразу рассчитаю макронутриенты! 🥑',
-  'Приятного аппетита! 🍜 Показывай свой обед, проверим баланс белков, жиров и углеводов!',
-];
+// ─── Multi-Language Phrase Banks ────────────────────────────
 
-const DINNER_PHRASES = [
-  'Добрый вечер! 🌙 Как прошёл день? Пора порадовать себя лёгким и вкусным ужином! Что у тебя сегодня? 🍽️',
-  'Время ужина! 🐟 Легкий ужин — залог отличного и глубокого сна. Отправь фото тарелочки!',
-  'Вечерний привет! 🥗 Зафиксируй свой ужин, чтобы посмотреть, сколько калорий осталось на сегодня!',
-  'Добрый вечерок! 🌙 Чем ужинаешь сегодня? Показывай тарелку, чтобы дневник питания был полным! 🥗',
-  'Ужин — время расслабиться и вкусно поесть 🍲 Сделай быстрый снимок — ИИ всё проанализирует!',
-];
+const MORNING_PHRASES: Record<SupportedLang, string[]> = {
+  ru: [
+    'Доброе утро! ☀️ Как спалось? Пора заправить организм энергией! Что у тебя сегодня вкусненького на завтрак? Загружай фото или загляни в CaloFit! 🍳',
+    'С добрым утром, чемчик! 🌅 Завтрак — главный источник бодрости. Чем сегодня порадовал свой организм? Отправляй фото — я всё рассчитаю! 🥞',
+    'Привет-привет! ☕ Утренний заряд энергии — залог успешного дня. Поделись, чем позавтракал? 🥪',
+    'Доброе утречко! 🍳 Завтрак — это основа дня! Поделись фоточкой тарелочки, а я посчитаю калории и подкажу полезность! 🥑',
+    'Утро доброе! 🥐 Чашка кофе и сбалансированный завтрак — и день удался! Что у тебя сегодня на столе?',
+  ],
+  uz: [
+    'Xayrli tong! ☀️ Uyqungiz qanday bo\'ldi? Kunni energiya bilan boshlaymiz! Nonushtaga nima edingiz? Rasm yuboring yoki CaloFit-ga kiring! 🍳',
+    'Xayrli tong! 🌅 Nonushta — kun bo\'yi tetiklik manbai. Bugun nimalar bilan tanovul qildingiz? Rasmini yuboring, hisoblab beraman! 🥞',
+    'Salom-salom! ☕ Ertalabki ovqatlanish — muvaffaqiyatli kun kaliti. Nonushtangiz rasmini yuborasizmi? 🥪',
+    'Ertalabki salom! 🍳 Nonushtaga nima tanovul qildingiz? Likopcha rasmini yuboring, barcha kaloriyalarni hisoblaymiz! 🥑',
+  ],
+  en: [
+    'Good morning! ☀️ How did you sleep? Time to fuel up for the day! What did you have for breakfast? Send a photo or open CaloFit! 🍳',
+    'Good morning! 🌅 Breakfast is key for energy. What\'s on your plate today? Send a photo and I will analyze it! 🥞',
+    'Morning! ☕ A healthy breakfast sets the tone for a productive day. What delicious meal did you start with today? 🥪',
+  ],
+};
 
-const EVENING_SUMMARY_PHRASES = [
-  'Отличный день! 🏆 Давай посмотрим твои успехи в CaloFit. Нажми кнопку ниже и проверь свои калории за сегодня! 📊',
-  'Добрый вечерок! 🌙 Загляни в дневник CaloFit, чтобы подвести итоги дня и посмотреть норму калорий! 📈',
-  'День подходит к концу 🌠 Проверь свой баланс калорий и отдыхай с чистой совестью! ✨',
-];
+const LUNCH_PHRASES: Record<SupportedLang, string[]> = {
+  ru: [
+    'Привет! Время обеденного перерыва 🥗 Чем порадуешь свой организм? Сделай фото блюда — я всё посчитаю! 📸',
+    'Обед — время восполнить силы! 🍲 Что аппетитного на тарелке? Загружай фото в CaloFit!',
+    'Эй, пупс, не забудь пообедать! 🍕 Организму нужны белки и углеводы. Что вкусненького у тебя сегодня?',
+    'Середина дня — самое время подкрепиться! 🥗 Поделись своим обедом — и я сразу рассчитаю макронутриенты! 🥑',
+    'Приятного аппетита! 🍜 Показывай свой обед, проверим баланс белков, жиров и углеводов!',
+  ],
+  uz: [
+    'Salom! Tushlik vaqti bo\'ldi 🥗 Organizmingiz uchun nima tanovul qilasiz? Taom rasmini yuboring, kkal hisoblaymiz! 📸',
+    'Tushlik — kuch yig\'ish vaqti! 🍲 Likopchangizda nima bor? CaloFit-ga yuklang!',
+    'Tushlik qilishni unutmang! 🍕 Oqsillar va uglevodlar juda muhim. Bugun nima yeyapsiz?',
+    'Kun o\'rtasi — quvvat yig\'ish vaqti! 🥗 Tushlik rasmini yuboring, makronutrientlarni hisoblaymiz! 🥑',
+  ],
+  en: [
+    'Hello! It\'s lunch time 🥗 What are you feeding your body today? Take a photo and I will calculate the calories! 📸',
+    'Lunch time! 🍲 What yummy food is on your plate? Upload a photo to CaloFit!',
+    'Hey there! Don\'t forget to have lunch. Your body needs protein and healthy carbs. What are you having today?',
+  ],
+};
+
+const DINNER_PHRASES: Record<SupportedLang, string[]> = {
+  ru: [
+    'Добрый вечер! 🌙 Как прошёл день? Пора порадовать себя лёгким и вкусным ужином! Что у тебя сегодня? 🍽️',
+    'Время ужина! 🐟 Легкий ужин — залог отличного и глубокого сна. Отправь фото тарелочки!',
+    'Вечерний привет! 🥗 Зафиксируй свой ужин, чтобы посмотреть, сколько калорий осталось на сегодня!',
+    'Добрый вечерок! 🌙 Чем ужинаешь сегодня? Показывай тарелку, чтобы дневник питания был полным! 🥗',
+    'Ужин — время расслабиться и вкусно поесть 🍲 Сделай быстрый снимок — ИИ всё проанализирует!',
+  ],
+  uz: [
+    'Xayrli kech! 🌙 Kuningiz qanday o\'tdi? Yengil va mazali kechki ovqat vaqti keldi! 🍽️',
+    'Kechki ovqat vaqti! 🐟 Yengil ovqatlanish — tinch va chuqur uyqu garovi! Rasm yuboring!',
+    'Kechki salom! 🥗 Bugungi ovqatlaringizni tekshirib, kkal me\'yorini ko\'rib oling!',
+  ],
+  en: [
+    'Good evening! 🌙 How was your day? Time for a light and healthy dinner! What are you having? 🍽️',
+    'Dinner time! 🐟 A light dinner guarantees great sleep. Share a picture of your dish!',
+    'Evening check-in! 🥗 Log your dinner to see how many calories you have left for today!',
+  ],
+};
+
+const EVENING_SUMMARY_PHRASES: Record<SupportedLang, string[]> = {
+  ru: [
+    'Отличный день! 🏆 Давай посмотрим твои успехи в CaloFit. Нажми кнопку ниже и проверь свои калории за сегодня! 📊',
+    'Добрый вечерок! 🌙 Загляни в дневник CaloFit, чтобы подвести итоги дня и посмотреть норму калорий! 📈',
+    'День подходит к концу 🌠 Проверь свой баланс калорий и отдыхай с чистой совестью! ✨',
+  ],
+  uz: [
+    'Ajoyib kun! 🏆 CaloFit-dagi natijalaringizni ko\'ramiz. Pastdagi tugmani bosing va bugungi kaloriyalaringizni tekshiring! 📊',
+    'Kechki salom! 🌙 CaloFit kundaligingizga kiring va bugungi sarflangan kkal-ni tekshiring! 📈',
+  ],
+  en: [
+    'Great day! 🏆 Let\'s review your progress in CaloFit. Click the button below to check your daily calories! 📊',
+    'Evening review! 🌙 Open CaloFit diary to check your calorie balance for today! 📈',
+  ],
+};
 
 @Injectable()
 export class TelegramService implements OnModuleInit, OnModuleDestroy {
@@ -40,7 +92,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   private webAppUrl: string;
   private isPolling = false;
   private lastUpdateId = 0;
+
   private activeChatIds: Set<number> = new Set();
+  private userLanguages: Map<number, SupportedLang> = new Map();
   private lastPhraseIndices: Record<string, number> = {};
 
   constructor(
@@ -67,7 +121,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     this.isPolling = false;
   }
 
-  // ─── Setup Bot WebApp Menu Button ────────────────────────
+  // ─── Setup Bot Menu Button & Commands ───────────────────────
   private async setupBotCommandsAndMenu() {
     try {
       // 1. Set Chat Menu Button to open WebApp
@@ -77,21 +131,22 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         body: JSON.stringify({
           menu_button: {
             type: 'web_app',
-            text: '📱 Открыть CaloFit',
+            text: '📱 CaloFit',
             web_app: { url: this.webAppUrl },
           },
         }),
       });
 
-      // 2. Set Bot Commands list
+      // 2. Set Bot Commands
       await fetch(`https://api.telegram.org/bot${this.botToken}/setMyCommands`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           commands: [
-            { command: 'start', description: '🚀 Открыть приложение и начать' },
-            { command: 'app', description: '📱 Запустить CaloFit WebApp' },
-            { command: 'remind', description: '🔔 Проверить калории за сегодня' },
+            { command: 'start', description: '🚀 Start bot & choose language / Boshlash' },
+            { command: 'lang', description: '🌐 Change language / Tilni o\'zgartirish' },
+            { command: 'app', description: '📱 Open CaloFit WebApp' },
+            { command: 'remind', description: '🔔 Check daily calories' },
           ],
         }),
       });
@@ -102,7 +157,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // ─── Long Polling for Telegram Bot Updates ────────────────
+  // ─── Long Polling ──────────────────────────────────────────
   private async startLongPolling() {
     this.isPolling = true;
     while (this.isPolling) {
@@ -121,14 +176,19 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           }
         }
       } catch (err: any) {
-        // Silent reconnect delay
         await new Promise((r) => setTimeout(r, 3000));
       }
     }
   }
 
-  // ─── Update Handler ───────────────────────────────────────
+  // ─── Main Update Router ────────────────────────────────────
   private async handleUpdate(update: any) {
+    // 1. Callback Query (Language buttons clicked)
+    if (update.callback_query) {
+      await this.handleCallbackQuery(update.callback_query);
+      return;
+    }
+
     const message = update.message;
     if (!message) return;
 
@@ -138,31 +198,105 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     // Track active subscriber
     this.activeChatIds.add(chatId);
 
-    // 1. Text commands (/start, /app, etc.)
+    // Default language from user's telegram telegram code if not set
+    if (!this.userLanguages.has(chatId)) {
+      const langCode = message.from?.language_code || 'ru';
+      const userLang: SupportedLang = langCode.startsWith('uz')
+        ? 'uz'
+        : langCode.startsWith('en')
+        ? 'en'
+        : 'ru';
+      this.userLanguages.set(chatId, userLang);
+    }
+
+    // 2. Text Commands
     if (message.text) {
       const text = message.text.trim();
-      if (text.startsWith('/start') || text.startsWith('/app')) {
-        await this.sendWelcomeMessage(chatId, message.from?.first_name || 'Друг');
+      if (text.startsWith('/start') || text.startsWith('/lang') || text.startsWith('/language')) {
+        await this.sendLanguageSelectionMenu(chatId, message.from?.first_name || 'Friend');
+      } else if (text.startsWith('/app')) {
+        await this.sendAppLauncherMessage(chatId);
       } else if (text.startsWith('/remind')) {
         await this.sendRandomNotification(chatId, 'summary');
       } else {
-        // General text answer with WebApp button
-        await this.sendCustomMessage(
-          chatId,
-          `Привет, ${message.from?.first_name || ''}! 👋\nЧтобы посчитать калории, отследить дневную норму или спросить у ИИ Диетолога — просто нажми кнопку ниже или отправь мне фото еды! 📸`,
-        );
+        const lang = this.getUserLang(chatId);
+        const promptText =
+          lang === 'uz'
+            ? `Salom, ${message.from?.first_name || ''}! 👋\nKaloriyalarigizni hisoblash yoki AI Dietolog bilan muloqot qilish uchun pastdagi tugmani bosing yoki taom rasmini yuboring! 📸`
+            : lang === 'en'
+            ? `Hello, ${message.from?.first_name || ''}! 👋\nTo calculate calories or talk to AI Dietician, tap the button below or send a meal photo! 📸`
+            : `Привет, ${message.from?.first_name || ''}! 👋\nЧтобы посчитать калории или спросить ИИ Диетолога — просто нажми кнопку ниже или отправь фото еды! 📸`;
+
+        await this.sendCustomMessage(chatId, promptText);
       }
     }
 
-    // 2. Photo uploads
+    // 3. Photo uploads
     if (message.photo && Array.isArray(message.photo)) {
       await this.handlePhotoAnalysis(chatId, message.photo);
     }
   }
 
-  // ─── Welcome Message with Persistent WebApp Button ────────
-  private async sendWelcomeMessage(chatId: number, firstName: string) {
-    const text = `Привет, ${firstName}! 👋 Добро пожаловать в **CaloFit** — твой умный персональный помощник по питанию и калориям!\n\n🥗 **Что я умею:**\n1. Рассчитывать твою индивидуальную суточную норму калорий.\n2. Анализировать любую еду по фото за 3 секунды.\n3. Давать профессиональные советы от ИИ Диетолога.\n\nНажми кнопку ниже, чтобы открыть приложение! 👇`;
+  // ─── Language Selection Menu on /start ──────────────────────
+  private async sendLanguageSelectionMenu(chatId: number, firstName: string) {
+    const text = `Привет, ${firstName}! 👋 Добро пожаловать в **CaloFit**!\n\nIltimos, bot tilini tanlang:\nПожалуйста, выберите язык бота:\nPlease select the bot language:`;
+
+    await fetch(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🇺🇿 O\'zbekcha', callback_data: 'set_lang_uz' }],
+            [{ text: '🇷🇺 Русский', callback_data: 'set_lang_ru' }],
+            [{ text: '🇬🇧 English', callback_data: 'set_lang_en' }],
+          ],
+        },
+      }),
+    });
+  }
+
+  // ─── Handle Callback Query ──────────────────────────────────
+  private async handleCallbackQuery(cb: any) {
+    const chatId = cb.message?.chat?.id;
+    const data = cb.data;
+    if (!chatId || !data) return;
+
+    // Answer callback query to remove loading spinner in Telegram
+    try {
+      await fetch(`https://api.telegram.org/bot${this.botToken}/answerCallbackQuery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callback_query_id: cb.id }),
+      });
+    } catch {}
+
+    if (data.startsWith('set_lang_')) {
+      const selectedLang = data.replace('set_lang_', '') as SupportedLang;
+      this.userLanguages.set(chatId, selectedLang);
+
+      await this.sendLanguageConfirmedMessage(chatId, selectedLang);
+    }
+  }
+
+  // ─── Confirmation Message after Language Selection ──────────
+  private async sendLanguageConfirmedMessage(chatId: number, lang: SupportedLang) {
+    let text = '';
+    let buttonLabel = '';
+
+    if (lang === 'uz') {
+      text = `✅ **Til muvaffaqiyatli tanlandi: O'zbekcha!** 🇺🇿\n\n**CaloFit** — sizning shaxsiy aqlli yordamchingiz.\n\n🥗 **Nimalar qila olaman:**\n1. Kunlik shaxsiy kkal me'yoringizni hisoblash.\n2. Istalgan taom rasmini 3 sekundda AI orqali tahlil qilish.\n3. Sun'iy intellekt Dietologidan maslahatlar olish.\n\nIlovani ochish uchun pastdagi tugmani bosing! 👇`;
+      buttonLabel = '📱 CaloFit-ni ochish';
+    } else if (lang === 'en') {
+      text = `✅ **Language successfully set to English!** 🇬🇧\n\n**CaloFit** — your smart personal health assistant.\n\n🥗 **What I can do:**\n1. Calculate your daily calorie goal.\n2. Analyze any meal photo in 3 seconds using AI.\n3. Provide expert advice from AI Dietician.\n\nTap the button below to open CaloFit! 👇`;
+      buttonLabel = '📱 Open CaloFit';
+    } else {
+      text = `✅ **Язык успешно выбран: Русский!** 🇷🇺\n\n**CaloFit** — твой персональный умный помощник по питанию.\n\n🥗 **Что я умею:**\n1. Рассчитывать индивидуальную норму калорий.\n2. Анализировать любую еду по фото за 3 секунды.\n3. Давать профессиональные советы от ИИ Диетолога.\n\nНажми кнопку ниже, чтобы открыть приложение! 👇`;
+      buttonLabel = '📱 Открыть CaloFit';
+    }
 
     await fetch(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
       method: 'POST',
@@ -173,7 +307,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         parse_mode: 'Markdown',
         reply_markup: {
           keyboard: [
-            [{ text: '📱 Открыть CaloFit', web_app: { url: this.webAppUrl } }],
+            [{ text: buttonLabel, web_app: { url: this.webAppUrl } }],
           ],
           resize_keyboard: true,
         },
@@ -181,8 +315,31 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  // ─── Send Custom Message with Inline WebApp Button ─────────
-  public async sendCustomMessage(chatId: number, text: string) {
+  private async sendAppLauncherMessage(chatId: number) {
+    const lang = this.getUserLang(chatId);
+    const label =
+      lang === 'uz' ? '📱 CaloFit-ni ochish' : lang === 'en' ? '📱 Open CaloFit' : '📱 Открыть CaloFit';
+    const text =
+      lang === 'uz'
+        ? 'CaloFit ilovasini ishga tushirish uchun pastdagi tugmani bosing 👇'
+        : lang === 'en'
+        ? 'Tap the button below to launch CaloFit WebApp 👇'
+        : 'Нажми кнопку ниже, чтобы запустить приложение CaloFit 👇';
+
+    await this.sendCustomMessage(chatId, text, label);
+  }
+
+  // ─── Send Custom Message with WebApp Inline Button ──────────
+  public async sendCustomMessage(chatId: number, text: string, buttonText?: string) {
+    const lang = this.getUserLang(chatId);
+    const label =
+      buttonText ||
+      (lang === 'uz'
+        ? '📱 CaloFit-ni ochish'
+        : lang === 'en'
+        ? '📱 Open CaloFit'
+        : '📱 Открыть CaloFit');
+
     await fetch(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -192,7 +349,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '📱 Открыть CaloFit', web_app: { url: this.webAppUrl } }],
+            [{ text: label, web_app: { url: this.webAppUrl } }],
           ],
         },
       }),
@@ -201,10 +358,17 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   // ─── Photo Analysis Handler ────────────────────────────────
   private async handlePhotoAnalysis(chatId: number, photos: any[]) {
-    try {
-      await this.sendCustomMessage(chatId, '📸 Снимок получен! Анализирую тарелку с помощью ИИ...');
+    const lang = this.getUserLang(chatId);
+    const waitMsg =
+      lang === 'uz'
+        ? '📸 Rasm qabul qilindi! AI yordamida tahlil qilinmoqda...'
+        : lang === 'en'
+        ? '📸 Photo received! Analyzing meal with AI...'
+        : '📸 Снимок получен! Анализирую тарелку с помощью ИИ...';
 
-      // Get largest resolution photo
+    try {
+      await this.sendCustomMessage(chatId, waitMsg);
+
       const largestPhoto = photos[photos.length - 1];
       const fileRes = await fetch(
         `https://api.telegram.org/bot${this.botToken}/getFile?file_id=${largestPhoto.file_id}`,
@@ -212,8 +376,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       const fileData = await fileRes.json();
 
       if (!fileData.ok || !fileData.result?.file_path) {
-        await this.sendCustomMessage(chatId, '⚠️ Не удалось загрузить фото. Попробуйте еще раз!');
-        return;
+        throw new Error('Could not fetch file path');
       }
 
       const photoUrl = `https://api.telegram.org/file/bot${this.botToken}/${fileData.result.file_path}`;
@@ -221,10 +384,17 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       const arrayBuffer = await imgRes.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      // AI Analysis
-      const result = await this.aiService.analyzeFood(buffer, 'image/jpeg', 'ru');
+      // AI Analysis in user's language
+      const result = await this.aiService.analyzeFood(buffer, 'image/jpeg', lang);
 
-      const msgText = `🥗 **Результат анализа блюда:**\n\n📌 **${result.foodName}**\n⚖️ Порция: ${result.portionSize}\n🔥 Калории: **${result.calories} ккал**\n\n🔹 Белки: ${result.protein}г\n🔹 Жиры: ${result.fat}г\n🔹 Углеводы: ${result.carbs}г\n\n💡 **Совет диетолога:**\n${result.healthAdvice || 'Сбалансированное блюдо!'}`;
+      let msgText = '';
+      if (lang === 'uz') {
+        msgText = `🥗 **Taom tahlili natijasi:**\n\n📌 **${result.foodName}**\n⚖️ Portsiya: ${result.portionSize}\n🔥 Kaloriya: **${result.calories} kkal**\n\n🔹 Oqsil: ${result.protein}g\n🔹 Yog': ${result.fat}g\n🔹 Uglevod: ${result.carbs}g\n\n💡 **Dietolog maslahati:**\n${result.healthAdvice || 'Sog\'lom taom!'}`;
+      } else if (lang === 'en') {
+        msgText = `🥗 **Meal Analysis Result:**\n\n📌 **${result.foodName}**\n⚖️ Portion: ${result.portionSize}\n🔥 Calories: **${result.calories} kcal**\n\n🔹 Protein: ${result.protein}g\n🔹 Fat: ${result.fat}g\n🔹 Carbs: ${result.carbs}g\n\n💡 **Dietician Advice:**\n${result.healthAdvice || 'Healthy meal!'}`;
+      } else {
+        msgText = `🥗 **Результат анализа блюда:**\n\n📌 **${result.foodName}**\n⚖️ Порция: ${result.portionSize}\n🔥 Калории: **${result.calories} ккал**\n\n🔹 Белки: ${result.protein}г\n🔹 Жиры: ${result.fat}г\n🔹 Углеводы: ${result.carbs}г\n\n💡 **Совет диетолога:**\n${result.healthAdvice || 'Сбалансированное блюдо!'}`;
+      }
 
       await fetch(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
         method: 'POST',
@@ -235,55 +405,67 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
-              [{ text: '📱 Открыть дневник в CaloFit', web_app: { url: this.webAppUrl } }],
+              [{ text: lang === 'uz' ? '📱 Kundalikni ochish' : lang === 'en' ? '📱 Open Log' : '📱 Открыть дневник', web_app: { url: this.webAppUrl } }],
             ],
           },
         }),
       });
     } catch (err: any) {
-      await this.sendCustomMessage(
-        chatId,
-        '⚠️ Извините, не удалось распознать еду на этой фотографии. Попробуйте сделать более чёткий снимок!',
-      );
+      const errText =
+        lang === 'uz'
+          ? '⚠️ Kechirasiz, rasmdagi taomni aniqlab bo\'lmadi. Qaytadan aniqroq rasm yuboring!'
+          : lang === 'en'
+          ? '⚠️ Sorry, could not identify food in this photo. Please try sending a clearer picture!'
+          : '⚠️ Извините, не удалось распознать еду на этой фотографии. Попробуйте сделать более чёткий снимок!';
+      await this.sendCustomMessage(chatId, errText);
     }
   }
 
-  // ─── Non-repetitive Phrase Picker ─────────────────────────
-  private getRandomPhrase(category: 'morning' | 'lunch' | 'dinner' | 'summary'): string {
-    let phrases: string[];
+  // ─── Non-repetitive Phrase Picker per Language ─────────────
+  private getRandomPhrase(chatId: number, category: 'morning' | 'lunch' | 'dinner' | 'summary'): string {
+    const lang = this.getUserLang(chatId);
+    let phrasesMap: Record<SupportedLang, string[]>;
+
     switch (category) {
       case 'morning':
-        phrases = MORNING_PHRASES;
+        phrasesMap = MORNING_PHRASES;
         break;
       case 'lunch':
-        phrases = LUNCH_PHRASES;
+        phrasesMap = LUNCH_PHRASES;
         break;
       case 'dinner':
-        phrases = DINNER_PHRASES;
+        phrasesMap = DINNER_PHRASES;
         break;
       case 'summary':
       default:
-        phrases = EVENING_SUMMARY_PHRASES;
+        phrasesMap = EVENING_SUMMARY_PHRASES;
         break;
     }
 
-    const lastIdx = this.lastPhraseIndices[category] ?? -1;
+    const phrases = phrasesMap[lang] || phrasesMap.ru;
+    const key = `${chatId}_${category}`;
+    const lastIdx = this.lastPhraseIndices[key] ?? -1;
+
     let nextIdx: number;
     do {
       nextIdx = Math.floor(Math.random() * phrases.length);
     } while (phrases.length > 1 && nextIdx === lastIdx);
 
-    this.lastPhraseIndices[category] = nextIdx;
+    this.lastPhraseIndices[key] = nextIdx;
     return phrases[nextIdx];
+  }
+
+  private getUserLang(chatId: number): SupportedLang {
+    return this.userLanguages.get(chatId) || 'ru';
   }
 
   // ─── Broadcast Notification to All Active Users ───────────
   public async broadcastNotification(category: 'morning' | 'lunch' | 'dinner' | 'summary') {
-    const text = this.getRandomPhrase(category);
     this.logger.log(`Broadcasting ${category} reminder to ${this.activeChatIds.size} subscribers...`);
 
     for (const chatId of Array.from(this.activeChatIds)) {
       try {
+        const text = this.getRandomPhrase(chatId, category);
         await this.sendCustomMessage(chatId, text);
       } catch (err: any) {
         // Ignore dead chat IDs
@@ -292,13 +474,12 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   public async sendRandomNotification(chatId: number, category: 'morning' | 'lunch' | 'dinner' | 'summary') {
-    const text = this.getRandomPhrase(category);
+    const text = this.getRandomPhrase(chatId, category);
     await this.sendCustomMessage(chatId, text);
   }
 
   // ─── Scheduled Reminders Timer ────────────────────────────
   private startScheduledNotificationTimer() {
-    // Check every minute for target reminder times (08:30, 13:00, 19:30, 21:30)
     setInterval(() => {
       const now = new Date();
       const hours = now.getHours();
