@@ -301,13 +301,6 @@ export default function DashboardPage({ params }: { params: { locale: string } }
             <Sparkles size={13} className="text-emerald-500" />
             {locale === 'ru' ? 'ИИ Диетолог' : locale === 'en' ? 'AI Dietician' : 'Sun\'iy intellekt'}
           </Link>
-          <button
-            onClick={() => setIsProfileModalOpen(true)}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-450 flex items-center gap-1.5 transition-all cursor-pointer"
-          >
-            <User size={13} className="text-emerald-500" />
-            {locale === 'ru' ? 'Профиль' : locale === 'en' ? 'Profile' : 'Profil'}
-          </button>
           <Link href="/support" className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-450 transition-all">
             {locale === 'ru' ? 'Помощь' : locale === 'en' ? 'Support' : 'Yordam'}
           </Link>
