@@ -190,9 +190,18 @@ export default function ProfilePage() {
   const handleSaveProfile = async () => {
     setIsLoading(true);
     try {
+      const payload = {
+        name: form.name,
+        dateOfBirth: form.dateOfBirth,
+        gender: form.gender,
+        heightCm: Number(form.heightCm),
+        weightKg: Number(form.weightKg),
+        goal: form.goal,
+      };
+
       if (hasExistingProfile) {
         // Update existing profile using PATCH
-        const { data } = await api.patch('/profile', form);
+        const { data } = await api.patch('/profile', payload);
         if (data?.dailyCalorieGoal) {
           setForm((prev) => ({ ...prev, dailyCalorieGoal: data.dailyCalorieGoal }));
         }
@@ -205,7 +214,7 @@ export default function ProfilePage() {
         );
       } else {
         // Create new profile using POST
-        const { data } = await api.post('/profile', form);
+        const { data } = await api.post('/profile', payload);
         setHasExistingProfile(true);
         if (user) setUser({ ...user, hasProfile: true });
         localStorage.setItem('user', JSON.stringify({ ...user, hasProfile: true }));
@@ -220,11 +229,12 @@ export default function ProfilePage() {
       }
     } catch (err: any) {
       toast.error(
-        locale === 'ru'
+        err.response?.data?.message ||
+        (locale === 'ru'
           ? 'Ошибка сохранения профиля'
           : locale === 'en'
           ? 'Failed to save profile'
-          : 'Profilni saqlashda xatolik'
+          : 'Profilni saqlashda xatolik')
       );
     } finally {
       setIsLoading(false);

@@ -49,4 +49,9 @@ export class UpdateProfileDto {
     message: 'Maqsad: LOSE_WEIGHT, MAINTAIN yoki GAIN_WEIGHT bo\'lishi kerak',
   })
   goal?: Goal;
+
+  @ApiPropertyOptional({ example: 2000 })
+  @IsOptional()
+  @IsNumber()
+  dailyCalorieGoal?: number;
 }

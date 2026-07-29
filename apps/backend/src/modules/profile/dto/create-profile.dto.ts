@@ -1,9 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEnum,
   IsInt,
   IsNumber,
+  IsOptional,
   Max,
   Min,
   MinLength,
@@ -42,4 +43,9 @@ export class CreateProfileDto {
     message: 'Maqsad: LOSE_WEIGHT, MAINTAIN yoki GAIN_WEIGHT bo\'lishi kerak',
   })
   goal: Goal;
+
+  @ApiPropertyOptional({ example: 2000 })
+  @IsOptional()
+  @IsNumber()
+  dailyCalorieGoal?: number;
 }

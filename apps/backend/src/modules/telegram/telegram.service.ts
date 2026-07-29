@@ -478,29 +478,46 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     await this.sendCustomMessage(chatId, text);
   }
 
-  // ─── Scheduled Reminders Timer ────────────────────────────
+  // ─── Scheduled Reminders Timer (Uzbekistan Time: Asia/Tashkent UTC+5) ─────
   private startScheduledNotificationTimer() {
-    setInterval(() => {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
+    let lastFiredSlot = '';
 
-      // Morning 08:30
+    setInterval(() => {
+      // Get current time in Uzbekistan timezone (Asia/Tashkent)
+      const options: Intl.DateTimeFormatOptions = {
+        timeZone: 'Asia/Tashkent',
+        hour: 'numeric',
+        minute: 'numeric',
+        hourCycle: 'h23',
+      };
+      const formatter = new Intl.DateTimeFormat('en-US', options);
+      const parts = formatter.formatToParts(new Date());
+      const hours = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
+      const minutes = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
+
+      const slotKey = `${hours}:${minutes}`;
+      if (lastFiredSlot === slotKey) return;
+
+      // Morning 08:30 UZB
       if (hours === 8 && minutes === 30) {
+        lastFiredSlot = slotKey;
         this.broadcastNotification('morning');
       }
-      // Lunch 13:00
+      // Lunch 13:00 UZB
       if (hours === 13 && minutes === 0) {
+        lastFiredSlot = slotKey;
         this.broadcastNotification('lunch');
       }
-      // Dinner 19:30
+      // Dinner 19:30 UZB
       if (hours === 19 && minutes === 30) {
+        lastFiredSlot = slotKey;
         this.broadcastNotification('dinner');
       }
-      // Evening Summary 21:30
+      // Evening Summary 21:30 UZB
       if (hours === 21 && minutes === 30) {
+        lastFiredSlot = slotKey;
         this.broadcastNotification('summary');
       }
-    }, 60000);
+    }, 30000);
   }
 }
