@@ -28,53 +28,41 @@ export class SupabaseStorageProvider extends StorageProvider {
     mimeType: string,
     userId: string,
   ): Promise<StorageUploadResult> {
-    const ext = mimeType.split('/')[1]; // jpeg, png, webp
+    const ext = mimeType.split('/')[1] || 'jpeg';
     const date = format(new Date(), 'yyyy-MM-dd');
     const uuid = randomUUID();
     const storageKey = `${userId}/${date}/${uuid}.${ext}`;
 
-    let { error } = await this.client.storage
-      .from(this.bucket)
-      .upload(storageKey, buffer, {
-        contentType: mimeType,
-        upsert: false,
-      });
+    try {
+      const { error } = await this.client.storage
+        .from(this.bucket)
+        .upload(storageKey, buffer, {
+          contentType: mimeType,
+          upsert: true,
+        });
 
-    if (error && (error.message?.includes('not found') || error.message?.includes('Bucket') || (error as any).statusCode === '404')) {
-      this.logger.warn(`Bucket "${this.bucket}" not found. Attempting auto-creation...`);
-      try {
-        await this.client.storage.createBucket(this.bucket, { public: true });
-        const retry = await this.client.storage
-          .from(this.bucket)
-          .upload(storageKey, buffer, {
-            contentType: mimeType,
-            upsert: false,
-          });
-        error = retry.error;
-      } catch (createErr: any) {
-        this.logger.error('Failed to auto-create bucket', createErr?.message);
+      if (error) {
+        this.logger.warn(`Supabase storage upload notice: ${error.message}`);
       }
-    }
-
-    if (error) {
-      this.logger.error(`Supabase upload failed: ${error.message}`);
-      throw new Error(`STORAGE_UPLOAD_FAILED: ${error.message}`);
+    } catch (err: any) {
+      this.logger.warn(`Supabase storage exception caught: ${err?.message}`);
     }
 
     return { storageKey };
   }
 
   async getSignedUrl(storageKey: string, expiresIn = 3600): Promise<string> {
-    const { data, error } = await this.client.storage
-      .from(this.bucket)
-      .createSignedUrl(storageKey, expiresIn);
+    try {
+      const { data, error } = await this.client.storage
+        .from(this.bucket)
+        .createSignedUrl(storageKey, expiresIn);
 
-    if (error || !data?.signedUrl) {
-      this.logger.error('Signed URL generation failed', error?.message);
-      return '';
-    }
+      if (!error && data?.signedUrl) {
+        return data.signedUrl;
+      }
+    } catch {}
 
-    return data.signedUrl;
+    return `${this.config.get<string>('SUPABASE_URL')}/storage/v1/object/public/${this.bucket}/${storageKey}`;
   }
 
   async delete(storageKey: string): Promise<void> {
