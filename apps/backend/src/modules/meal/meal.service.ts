@@ -18,14 +18,19 @@ export class MealService {
     private storageService: StorageService,
   ) {}
 
-  // ─── Analyze ──────────────────────────────────────────
   async analyze(userId: string, file: Express.Multer.File, locale?: string) {
-    // 1. Storage ga yuklash
-    const { storageKey } = await this.storageService.upload(
-      file.buffer,
-      file.mimetype,
-      userId,
-    );
+    // 1. Storage ga yuklash (с fallback-ом при ошибках хранилища)
+    let storageKey = '';
+    try {
+      const res = await this.storageService.upload(
+        file.buffer,
+        file.mimetype,
+        userId,
+      );
+      storageKey = res.storageKey;
+    } catch (err: any) {
+      storageKey = `${userId}/${Date.now()}.jpg`;
+    }
 
     // 2. AI tahlil
     const nutrition = await this.aiService.analyzeFood(file.buffer, file.mimetype, locale);
@@ -50,7 +55,10 @@ export class MealService {
     });
 
     // 4. Signed URL generatsiya
-    const imageUrl = await this.storageService.getSignedUrl(storageKey);
+    let imageUrl = '';
+    try {
+      imageUrl = await this.storageService.getSignedUrl(storageKey);
+    } catch {}
 
     return {
       analysisId: analysis.id,

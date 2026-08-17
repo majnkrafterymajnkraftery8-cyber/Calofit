@@ -73,13 +73,15 @@ export default function AnalyzePage() {
         carbs: data.nutrition.carbs,
       });
     },
-    onError: () => {
+    onError: (err: any) => {
+      const serverMessage = err?.response?.data?.message;
       toast.error(
-        locale === 'ru' 
-          ? 'Ошибка при анализе' 
+        serverMessage ||
+        (locale === 'ru' 
+          ? 'Ошибка при анализе. Пожалуйста, убедитесь, что на фото есть еда!' 
           : locale === 'en' 
-          ? 'Analysis failed' 
-          : 'Tahlilda xatolik yuz berdi'
+          ? 'Analysis failed. Please make sure the photo contains food!' 
+          : 'Tahlilda xatolik yuz berdi. Iltimos, taom rasmini yuklang!')
       );
     },
   });
