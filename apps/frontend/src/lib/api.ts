@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const cleanApiUrl = rawApiUrl.replace(/\/+$/, '');
+const baseURL = cleanApiUrl.endsWith('/api/v1') ? cleanApiUrl : `${cleanApiUrl}/api/v1`;
 
 export const api = axios.create({
-  baseURL: `${API_URL}/api/v1`,
+  baseURL,
   withCredentials: true, // HttpOnly cookie uchun
   headers: {
     'Content-Type': 'application/json',
