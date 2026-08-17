@@ -17,11 +17,20 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // CORS
-  const corsOrigins = process.env.CORS_ORIGINS || 'http://localhost:3001';
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+    : ['http://localhost:3001'];
+
   app.enableCors({
-    origin: corsOrigins.split(','),
+    origin: (origin, callback) => {
+      if (!origin || corsOrigins.includes('*') || corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
   });
 
   // Global Exception Filter
