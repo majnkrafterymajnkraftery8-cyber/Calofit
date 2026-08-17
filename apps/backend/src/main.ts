@@ -17,15 +17,7 @@ async function bootstrap() {
   app.use(json({ limit: '25mb' }));
   app.use(urlencoded({ limit: '25mb', extended: true }));
 
-  // Security Middlewares
-  app.use(
-    helmet({
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-    }),
-  );
-  app.use(cookieParser());
-
-  // CORS
+  // 1. CORS (Must be before helmet)
   const corsOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
     : ['http://localhost:3001'];
@@ -41,6 +33,15 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
   });
+
+  // 2. Security Middlewares
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: false,
+    }),
+  );
+  app.use(cookieParser());
 
   // Global Exception Filter
   app.useGlobalFilters(new GlobalExceptionFilter());

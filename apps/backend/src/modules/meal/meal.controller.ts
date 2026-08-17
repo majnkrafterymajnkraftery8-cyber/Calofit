@@ -40,7 +40,7 @@ export class MealController {
 
   @Post('analyze')
   @UseGuards(ProfileGuard)
-  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
   @UseInterceptors(
     FileInterceptor('image', {
       storage: memoryStorage(),
