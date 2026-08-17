@@ -37,6 +37,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Boshlang'ich auth holatini tekshirish
   useEffect(() => {
+    // 1. If running inside Telegram WebApp with initData, perform Telegram login
+    if (typeof window !== 'undefined') {
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg) {
+        try {
+          tg.ready();
+          tg.expand();
+        } catch (e) {
+          console.warn('Telegram SDK initialization warning:', e);
+        }
+
+        const initData = tg.initData;
+        if (initData) {
+          setIsLoading(true);
+          api
+            .post('/auth/telegram/login', { initData })
+            .then(({ data }) => {
+              localStorage.setItem('accessToken', data.accessToken);
+              localStorage.setItem('user', JSON.stringify(data.user));
+              setUser(data.user);
+
+              if (data.user.hasProfile) {
+                router.push('/dashboard');
+              } else {
+                router.push('/profile');
+              }
+            })
+            .catch((err) => {
+              console.error('Telegram WebApp auto-login failed:', err);
+              // Fallback to local storage if API call fails offline
+              const token = localStorage.getItem('accessToken');
+              const storedUser = localStorage.getItem('user');
+              if (token && storedUser) {
+                try {
+                  setUser(JSON.parse(storedUser));
+                } catch {
+                  localStorage.removeItem('accessToken');
+                  localStorage.removeItem('user');
+                }
+              }
+            })
+            .finally(() => {
+              setIsLoading(false);
+            });
+          return;
+        }
+      }
+    }
+
+    // 2. Normal Web Browser check
     const token = localStorage.getItem('accessToken');
     const storedUser = localStorage.getItem('user');
 
@@ -47,47 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
       }
-      setIsLoading(false);
-    } else {
-      // Check if running inside Telegram WebApp
-      if (typeof window !== 'undefined') {
-        const tg = (window as any).Telegram?.WebApp;
-        if (tg) {
-          try {
-            tg.ready();
-            tg.expand();
-          } catch (e) {
-            console.warn('Telegram SDK initialization warning:', e);
-          }
-          
-          const initData = tg.initData;
-          if (initData) {
-            setIsLoading(true);
-            api.post('/auth/telegram/login', { initData })
-              .then(({ data }) => {
-                localStorage.setItem('accessToken', data.accessToken);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setUser(data.user);
-                
-                // Redirect depending on onboarding profile
-                if (data.user.hasProfile) {
-                  router.push('/dashboard');
-                } else {
-                  router.push('/profile');
-                }
-              })
-              .catch((err) => {
-                console.error('Telegram WebApp auto-login failed:', err);
-              })
-              .finally(() => {
-                setIsLoading(false);
-              });
-            return;
-          }
-        }
-      }
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }, [router]);
 
   const login = useCallback(

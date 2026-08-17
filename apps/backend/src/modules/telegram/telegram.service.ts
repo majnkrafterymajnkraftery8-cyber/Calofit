@@ -104,10 +104,10 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   ) {
     this.botToken =
       this.config.get<string>('TELEGRAM_BOT_TOKEN') ||
-      '8838776318:AAERdKmFhaN-JgRhrslpeVdVUVZhtghoXCw';
+      '8838776318:AAEm4AqkHfKmVDj6vVdOyF1k_w974YyL1jU';
     this.webAppUrl =
       this.config.get<string>('TELEGRAM_WEBAPP_URL') ||
-      'https://calofit-neon.vercel.app/uz/dashboard';
+      'https://calofit-liart.vercel.app/ru/dashboard';
   }
 
   async onModuleInit() {
@@ -288,14 +288,14 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     let buttonLabel = '';
 
     if (lang === 'uz') {
-      text = `✅ **Til muvaffaqiyatli tanlandi: O'zbekcha!** 🇺🇿\n\n**CaloFit** — sizning shaxsiy aqlli yordamchingiz.\n\n🥗 **Nimalar qila olaman:**\n1. Kunlik shaxsiy kkal me'yoringizni hisoblash.\n2. Istalgan taom rasmini 3 sekundda AI orqali tahlil qilish.\n3. Sun'iy intellekt Dietologidan maslahatlar olish.\n\nIlovani ochish uchun pastdagi tugmani bosing! 👇`;
-      buttonLabel = '📱 CaloFit-ni ochish';
+      text = `✅ **Til tanlandi: O'zbekcha!** 🇺🇿\n\n🎯 **Yangi foydalanuvchilar uchun yo'riqnoma:**\n\n1️⃣ Pastdagi **«🚀 CaloFit App-ni ochish»** tugmasini bosing.\n2️⃣ Ilova avtomatik ravishda Telegram profilingiz orqali tizimga kiradi!\n3️⃣ O'z ma'lumotlaringizni (bo'y, vazn, maqsad) kiriting.\n4️⃣ Taom rasmini yuklang — AI 3 sekundda kkal va makronutrientlarni hisoblaydi!\n\n👇 **Ilovaga kirish uchun bosing:**`;
+      buttonLabel = '🚀 CaloFit App-ni ochish';
     } else if (lang === 'en') {
-      text = `✅ **Language successfully set to English!** 🇬🇧\n\n**CaloFit** — your smart personal health assistant.\n\n🥗 **What I can do:**\n1. Calculate your daily calorie goal.\n2. Analyze any meal photo in 3 seconds using AI.\n3. Provide expert advice from AI Dietician.\n\nTap the button below to open CaloFit! 👇`;
-      buttonLabel = '📱 Open CaloFit';
+      text = `✅ **Language set to English!** 🇬🇧\n\n🎯 **Beginner's Guide:**\n\n1️⃣ Tap the **«🚀 Open CaloFit App»** button below.\n2️⃣ You will automatically log in using your Telegram account!\n3️⃣ Complete your quick profile (height, weight, goal).\n4️⃣ Snap a photo of your meal — AI calculates calories & macros in 3s!\n\n👇 **Tap below to open Mini App:**`;
+      buttonLabel = '🚀 Open CaloFit App';
     } else {
-      text = `✅ **Язык успешно выбран: Русский!** 🇷🇺\n\n**CaloFit** — твой персональный умный помощник по питанию.\n\n🥗 **Что я умею:**\n1. Рассчитывать индивидуальную норму калорий.\n2. Анализировать любую еду по фото за 3 секунды.\n3. Давать профессиональные советы от ИИ Диетолога.\n\nНажми кнопку ниже, чтобы открыть приложение! 👇`;
-      buttonLabel = '📱 Открыть CaloFit';
+      text = `✅ **Язык выбран: Русский!** 🇷🇺\n\n🎯 **Гайд для новичков (Как пользоваться):**\n\n1️⃣ Нажмите кнопку **«🚀 Открыть CaloFit App»** ниже (или синюю кнопку меню слева внизу).\n2️⃣ Вход произойдет **автоматически** через ваш Telegram-аккаунт в 1 клик!\n3️⃣ Заполните параметры (рост, вес, цель).\n4️⃣ Делайте фото любого блюда — ИИ моментально рассчитает калории, белки, жиры и углеводы!\n\n👇 **Жмите кнопку ниже, чтобы запустить Mini App:**`;
+      buttonLabel = '🚀 Открыть CaloFit App';
     }
 
     await fetch(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
