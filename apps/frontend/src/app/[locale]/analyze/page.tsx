@@ -109,8 +109,55 @@ export default function AnalyzePage() {
     },
   });
 
+  // ─── Client-side Image Compression Helper ──────────
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      if (file.size < 600 * 1024) return resolve(file);
+
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_DIM = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_DIM) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          }
+        } else {
+          if (height > MAX_DIM) {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return resolve(file);
+            const compressed = new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressed);
+          },
+          'image/jpeg',
+          0.85,
+        );
+      };
+      img.onerror = () => resolve(file);
+    });
+  };
+
   // ─── File Selection ────────────────────────────────
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -119,9 +166,14 @@ export default function AnalyzePage() {
     reader.onload = (ev) => setPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
 
-    // Upload
+    // Upload with compression
     setResult(null);
-    analyzeMutation.mutate(file);
+    try {
+      const uploadFile = await compressImage(file);
+      analyzeMutation.mutate(uploadFile);
+    } catch {
+      analyzeMutation.mutate(file);
+    }
   };
 
   return (

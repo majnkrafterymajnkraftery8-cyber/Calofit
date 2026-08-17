@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
@@ -12,8 +13,16 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
+  // Payload limits
+  app.use(json({ limit: '25mb' }));
+  app.use(urlencoded({ limit: '25mb', extended: true }));
+
   // Security Middlewares
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.use(cookieParser());
 
   // CORS
