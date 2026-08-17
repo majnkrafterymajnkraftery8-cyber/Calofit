@@ -110,7 +110,7 @@ export class OpenAIProvider extends AIProvider {
     try {
       const response = await this.client.chat.completions.create({
         model: this.model,
-        max_tokens: 500,
+        max_tokens: 1500,
         temperature: 0,
         response_format: {
           type: 'json_schema',
@@ -139,8 +139,8 @@ export class OpenAIProvider extends AIProvider {
       });
 
       rawContent = response.choices[0]?.message?.content ?? '';
-    } catch (err) {
-      this.logger.error('OpenAI API error', err?.message);
+    } catch (err: any) {
+      this.logger.error(`OpenAI API error (${err?.status || 'unknown'}): ${err?.message || err}`);
       throw new Error('AI_API_ERROR');
     }
 

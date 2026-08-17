@@ -33,15 +33,31 @@ export class SupabaseStorageProvider extends StorageProvider {
     const uuid = randomUUID();
     const storageKey = `${userId}/${date}/${uuid}.${ext}`;
 
-    const { error } = await this.client.storage
+    let { error } = await this.client.storage
       .from(this.bucket)
       .upload(storageKey, buffer, {
         contentType: mimeType,
         upsert: false,
       });
 
+    if (error && (error.message?.includes('not found') || error.message?.includes('Bucket') || (error as any).statusCode === '404')) {
+      this.logger.warn(`Bucket "${this.bucket}" not found. Attempting auto-creation...`);
+      try {
+        await this.client.storage.createBucket(this.bucket, { public: true });
+        const retry = await this.client.storage
+          .from(this.bucket)
+          .upload(storageKey, buffer, {
+            contentType: mimeType,
+            upsert: false,
+          });
+        error = retry.error;
+      } catch (createErr: any) {
+        this.logger.error('Failed to auto-create bucket', createErr?.message);
+      }
+    }
+
     if (error) {
-      this.logger.error('Supabase upload failed', error.message);
+      this.logger.error(`Supabase upload failed: ${error.message}`);
       throw new Error(`STORAGE_UPLOAD_FAILED: ${error.message}`);
     }
 
