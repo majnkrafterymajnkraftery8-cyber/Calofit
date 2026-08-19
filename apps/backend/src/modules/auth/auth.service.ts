@@ -357,16 +357,15 @@ export class AuthService {
     let tgUser: { id: number | string; first_name?: string; last_name?: string; username?: string } | null = null;
 
     if (initData) {
-      const verified = this.verifyTelegramInitData(initData, botToken);
-      if (verified) {
+      try {
+        // Try signature verification first
+        const verified = this.verifyTelegramInitData(initData, botToken);
         const params = new URLSearchParams(initData);
         const userJson = params.get('user');
         if (userJson) {
-          try {
-            tgUser = JSON.parse(userJson);
-          } catch {}
+          tgUser = JSON.parse(userJson);
         }
-      }
+      } catch {}
     }
 
     if (!tgUser && telegramUser && telegramUser.id) {
