@@ -7,7 +7,7 @@ import { Link, useRouter, usePathname } from '@/i18n/routing';
 import { toast } from 'sonner';
 import { useSearchParams, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Mail, RefreshCw, AlertTriangle, Loader2, Sun, Moon, ChevronDown, Check, Eye, EyeOff } from 'lucide-react';
+import { Mail, RefreshCw, AlertTriangle, Loader2, Sun, Moon, ChevronDown, Check, Eye, EyeOff, Send } from 'lucide-react';
 import { useTheme } from '@/providers/theme-provider';
 
 const LANG_MAP = {
@@ -311,8 +311,20 @@ export default function LoginPage() {
             <div className="flex-grow border-t border-gray-200/50 dark:border-slate-800/80"></div>
           </div>
 
+          {/* Telegram One-Click Login Button */}
+          <button
+            type="button"
+            onClick={handleTelegramClick}
+            disabled={isLoading}
+            className="w-full py-3 rounded-xl font-bold text-xs text-white bg-sky-500 hover:bg-sky-600 shadow-md shadow-sky-500/20 transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer disabled:opacity-50"
+          >
+            <Send size={16} />
+            {locale === 'ru' ? 'Войти через Telegram в 1 клик' : locale === 'en' ? 'Sign in with Telegram (1-Click)' : 'Telegram orqali 1-bosishda kirish'}
+          </button>
+
           {/* Google Login Button */}
           <button
+            type="button"
             onClick={handleGoogleLogin}
             disabled={isLoading}
             className="w-full py-3 rounded-xl font-bold text-xs text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/60 shadow-sm transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer disabled:opacity-50"

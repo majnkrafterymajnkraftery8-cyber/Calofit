@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { AiService } from '../ai/ai.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 type SupportedLang = 'uz' | 'ru' | 'en';
 
 // ─── Multi-Language Phrase Banks ────────────────────────────
@@ -112,6 +115,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.logger.log('Initializing Telegram Bot Service...');
+    this.loadSubscribersFromFile();
     await this.setupBotCommandsAndMenu();
     this.startLongPolling();
     this.startScheduledNotificationTimer();
@@ -119,6 +123,29 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   onModuleDestroy() {
     this.isPolling = false;
+  }
+
+  private loadSubscribersFromFile() {
+    try {
+      const filePath = path.join(process.cwd(), 'telegram_subscribers.json');
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((id: number) => this.activeChatIds.add(id));
+          this.logger.log(`Loaded ${this.activeChatIds.size} saved Telegram subscribers.`);
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not load Telegram subscribers file: ${err?.message}`);
+    }
+  }
+
+  private saveSubscribersToFile() {
+    try {
+      const filePath = path.join(process.cwd(), 'telegram_subscribers.json');
+      fs.writeFileSync(filePath, JSON.stringify(Array.from(this.activeChatIds)), 'utf-8');
+    } catch {}
   }
 
   // ─── Setup Bot Menu Button & Commands ───────────────────────
@@ -195,8 +222,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     const chatId = message.chat?.id;
     if (!chatId) return;
 
-    // Track active subscriber
-    this.activeChatIds.add(chatId);
+    // Track active subscriber and save persistently
+    if (!this.activeChatIds.has(chatId)) {
+      this.activeChatIds.add(chatId);
+      this.saveSubscribersToFile();
+    }
 
     // Default language from user's telegram telegram code if not set
     if (!this.userLanguages.has(chatId)) {

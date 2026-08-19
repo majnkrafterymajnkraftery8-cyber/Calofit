@@ -346,7 +346,9 @@ export class AuthService {
 
   // ─── Telegram Web App Login ───────────────────────────
   async telegramLogin(initData: string) {
-    const botToken = this.config.get<string>('TELEGRAM_BOT_TOKEN') || '8838776318:AAERdKmFhaN-JgRhrslpeVdVUVZhtghoXCw';
+    const botToken =
+      this.config.get<string>('TELEGRAM_BOT_TOKEN') ||
+      '8838776318:AAEm4AqkHfKmVDj6vVdOyF1k_w974YyL1jU';
     
     // 1. Verify initData signature
     const verified = this.verifyTelegramInitData(initData, botToken);
