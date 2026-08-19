@@ -117,10 +117,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Telegram Web App authentication' })
   @ApiResponse({ status: 200, description: 'Muvaffaqiyatli kirish' })
   async telegramLogin(
-    @Body() body: { initData?: string; telegramUser?: any },
+    @Body() body: { initData?: string; telegramUser?: any; guestId?: string },
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.telegramLogin(body.initData || '', body.telegramUser);
+    const result = await this.authService.telegramLogin(
+      body.initData || '',
+      body.telegramUser,
+      body.guestId,
+    );
     res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
     return {
       accessToken: result.accessToken,

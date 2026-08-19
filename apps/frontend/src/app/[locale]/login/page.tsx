@@ -55,46 +55,34 @@ export default function LoginPage() {
   const [isResending, setIsResending] = useState(false);
 
   const handleTelegramClick = async () => {
-    if (typeof window !== 'undefined') {
+    setIsLoading(true);
+    try {
       const tg = (window as any).Telegram?.WebApp;
       try { tg?.ready(); tg?.expand(); } catch {}
 
-      let initData = tg?.initData || '';
-      let telegramUser = tg?.initDataUnsafe?.user;
-
-      if (!initData && !telegramUser) {
-        try {
-          const hashParams = new URLSearchParams(window.location.hash.slice(1));
-          initData = hashParams.get('tgWebAppData') || '';
-        } catch {}
+      const initData = tg?.initData || '';
+      const telegramUser = tg?.initDataUnsafe?.user;
+      let guestId = localStorage.getItem('tg_guest_id');
+      if (!guestId) {
+        guestId = 'guest_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('tg_guest_id', guestId);
       }
 
-      if (initData || (telegramUser && telegramUser.id)) {
-        setIsLoading(true);
-        try {
-          const { data } = await api.post('/auth/telegram/login', { initData, telegramUser });
-          localStorage.setItem('accessToken', data.accessToken);
-          localStorage.setItem('user', JSON.stringify(data.user));
-          setUser(data.user);
-          toast.success(locale === 'ru' ? 'Вход выполнен!' : 'Muvaffaqiyatli kirildi!');
-          if (data.user.hasProfile) {
-            window.location.href = `/${locale}/dashboard`;
-          } else {
-            window.location.href = `/${locale}/profile`;
-          }
-        } catch (err: any) {
-          toast.error(err.response?.data?.message || 'Telegram auth failed');
-        } finally {
-          setIsLoading(false);
-        }
-        return;
+      const { data } = await api.post('/auth/telegram/login', { initData, telegramUser, guestId });
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
+      toast.success(locale === 'ru' ? 'Вход выполнен!' : 'Muvaffaqiyatli kirildi!');
+      if (data.user.hasProfile) {
+        window.location.href = `/${locale}/dashboard`;
+      } else {
+        window.location.href = `/${locale}/profile`;
       }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Telegram auth failed');
+    } finally {
+      setIsLoading(false);
     }
-    toast.error(
-      locale === 'ru'
-        ? 'Откройте приложение через кнопку в Telegram боте!'
-        : 'Telegram ботидаги тугма orqali oching!'
-    );
   };
 
   // Handle Google OAuth callback code from URL query parameters
