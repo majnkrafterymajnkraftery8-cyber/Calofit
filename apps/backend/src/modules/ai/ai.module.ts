@@ -2,18 +2,17 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AiService } from './ai.service';
 import { OpenAIProvider } from './providers/openai.provider';
+import { GeminiProvider } from './providers/gemini.provider';
 
 @Module({
   providers: [
     {
       provide: 'AI_PROVIDER',
       useFactory: (config: ConfigService) => {
-        // Provider pattern — env var bilan almashtirish mumkin
-        const provider = config.get<string>('AI_PROVIDER', 'openai');
-        if (provider === 'openai') {
-          return new OpenAIProvider(config);
+        const provider = config.get<string>('AI_PROVIDER', 'gemini');
+        if (provider === 'gemini') {
+          return new GeminiProvider(config);
         }
-        // Kelajakda: 'gemini' → new GeminiProvider(config)
         return new OpenAIProvider(config);
       },
       inject: [ConfigService],
