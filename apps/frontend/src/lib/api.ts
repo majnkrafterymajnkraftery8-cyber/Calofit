@@ -49,14 +49,14 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Refresh endpoint dan 401 kelsa — login sahifasiga yo'naltir
+    // Refresh endpoint dan 401 kelsa — login sahifasida jimgina tozalash
     if (
       error.response?.status === 401 &&
-      originalRequest.url?.includes('/auth/refresh')
+      (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/telegram/login'))
     ) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('accessToken');
-        window.location.href = '/uz/login';
+        localStorage.removeItem('user');
       }
       return Promise.reject(error);
     }
