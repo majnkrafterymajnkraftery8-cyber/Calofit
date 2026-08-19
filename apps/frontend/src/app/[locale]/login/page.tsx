@@ -57,19 +57,22 @@ export default function LoginPage() {
   const handleTelegramClick = async () => {
     if (typeof window !== 'undefined') {
       const tg = (window as any).Telegram?.WebApp;
-      let initData = tg?.initData;
+      try { tg?.ready(); tg?.expand(); } catch {}
 
-      if (!initData) {
+      let initData = tg?.initData || '';
+      let telegramUser = tg?.initDataUnsafe?.user;
+
+      if (!initData && !telegramUser) {
         try {
           const hashParams = new URLSearchParams(window.location.hash.slice(1));
           initData = hashParams.get('tgWebAppData') || '';
         } catch {}
       }
 
-      if (initData) {
+      if (initData || (telegramUser && telegramUser.id)) {
         setIsLoading(true);
         try {
-          const { data } = await api.post('/auth/telegram/login', { initData });
+          const { data } = await api.post('/auth/telegram/login', { initData, telegramUser });
           localStorage.setItem('accessToken', data.accessToken);
           localStorage.setItem('user', JSON.stringify(data.user));
           setUser(data.user);

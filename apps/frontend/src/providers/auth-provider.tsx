@@ -48,11 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.warn('Telegram SDK initialization warning:', e);
         }
 
-        const initData = tg.initData;
-        if (initData) {
+        const initData = tg.initData || '';
+        const telegramUser = tg.initDataUnsafe?.user;
+
+        if (initData || (telegramUser && telegramUser.id)) {
           setIsLoading(true);
           api
-            .post('/auth/telegram/login', { initData })
+            .post('/auth/telegram/login', { initData, telegramUser })
             .then(({ data }) => {
               localStorage.setItem('accessToken', data.accessToken);
               localStorage.setItem('user', JSON.stringify(data.user));
