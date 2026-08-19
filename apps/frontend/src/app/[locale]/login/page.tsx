@@ -54,6 +54,38 @@ export default function LoginPage() {
   const [showVerifyPrompt, setShowVerifyPrompt] = useState(false);
   const [isResending, setIsResending] = useState(false);
 
+  const handleTelegramClick = async () => {
+    if (typeof window !== 'undefined') {
+      const tg = (window as any).Telegram?.WebApp;
+      const initData = tg?.initData;
+      if (initData) {
+        setIsLoading(true);
+        try {
+          const { data } = await api.post('/auth/telegram/login', { initData });
+          localStorage.setItem('accessToken', data.accessToken);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setUser(data.user);
+          toast.success(locale === 'ru' ? 'Вход выполнен!' : 'Muvaffaqiyatli kirildi!');
+          if (data.user.hasProfile) {
+            window.location.href = `/${locale}/dashboard`;
+          } else {
+            window.location.href = `/${locale}/profile`;
+          }
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || 'Telegram auth failed');
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      }
+    }
+    toast.error(
+      locale === 'ru'
+        ? 'Откройте приложение через Telegram бот!'
+        : 'Telegram боти орқали очинг!'
+    );
+  };
+
   // Handle Google OAuth callback code from URL query parameters
   useEffect(() => {
     const code = searchParams.get('code');
