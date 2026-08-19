@@ -25,7 +25,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
-        <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <script dangerouslySetInnerHTML={{__html: `
           (function() {
             const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');

@@ -57,7 +57,15 @@ export default function LoginPage() {
   const handleTelegramClick = async () => {
     if (typeof window !== 'undefined') {
       const tg = (window as any).Telegram?.WebApp;
-      const initData = tg?.initData;
+      let initData = tg?.initData;
+
+      if (!initData) {
+        try {
+          const hashParams = new URLSearchParams(window.location.hash.slice(1));
+          initData = hashParams.get('tgWebAppData') || '';
+        } catch {}
+      }
+
       if (initData) {
         setIsLoading(true);
         try {
@@ -81,8 +89,8 @@ export default function LoginPage() {
     }
     toast.error(
       locale === 'ru'
-        ? 'Откройте приложение через Telegram бот!'
-        : 'Telegram боти орқали очинг!'
+        ? 'Откройте приложение через кнопку в Telegram боте!'
+        : 'Telegram ботидаги тугма orqali oching!'
     );
   };
 
@@ -214,7 +222,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => {
                       setLangOpen(false);
-                      router.replace(pathname, { locale: key });
+                      window.location.href = `/${key}/login`;
                     }}
                     className={`w-full px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/60 flex items-center justify-between cursor-pointer ${
                       locale === key ? 'text-green-600 dark:text-emerald-400 bg-green-50/50 dark:bg-emerald-950/20' : 'text-gray-700 dark:text-slate-300'
