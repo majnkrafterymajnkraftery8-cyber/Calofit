@@ -28,44 +28,75 @@ const FoodAnalysisSchema = z.object({
 const FOOD_ANALYSIS_SCHEMA = {
   type: 'object',
   properties: {
-    is_food: { type: 'boolean', description: 'True if the image contains food or drink' },
-    food_name: { type: 'string', description: 'Name of the food/dish in English. Max 100 chars.' },
-    food_name_local: { type: 'string', description: 'Local/Uzbek name if known. Empty string if unknown.' },
-    portion_size: { type: 'string', description: 'Estimated portion description (e.g. "1 serving (~300g)")' },
-    calories: { type: 'number', description: 'Total calories (kcal) for the entire visible portion. Non-negative.' },
-    protein: { type: 'number', description: 'Total protein in grams. Non-negative.' },
+    is_food: {
+      type: 'boolean',
+      description: 'True if the image contains food or drink',
+    },
+    food_name: {
+      type: 'string',
+      description: 'Name of the food/dish in English. Max 100 chars.',
+    },
+    food_name_local: {
+      type: 'string',
+      description: 'Local/Uzbek name if known. Empty string if unknown.',
+    },
+    portion_size: {
+      type: 'string',
+      description: 'Estimated portion description (e.g. "1 serving (~300g)")',
+    },
+    calories: {
+      type: 'number',
+      description:
+        'Total calories (kcal) for the entire visible portion. Non-negative.',
+    },
+    protein: {
+      type: 'number',
+      description: 'Total protein in grams. Non-negative.',
+    },
     fat: { type: 'number', description: 'Total fat in grams. Non-negative.' },
-    carbs: { type: 'number', description: 'Total carbohydrates in grams. Non-negative.' },
-    confidence_score: { type: 'number', description: 'Confidence level from 0.0 to 1.0.' },
-    notes: { type: 'string', description: 'Optional brief note about uncertainty. Max 200 chars.' },
-    ingredients: { 
-      type: 'array', 
-      items: { type: 'string' }, 
-      description: 'List of detected key ingredients in the language of the request (Uzbek/Russian).' 
+    carbs: {
+      type: 'number',
+      description: 'Total carbohydrates in grams. Non-negative.',
     },
-    health_advice: { 
-      type: 'string', 
-      description: 'Detailed professional dietician advice about this dish, its nutritional pros and cons, health benefits or warnings (e.g. "Taom oqsilga boy, biroq yog` miqdori ko`p..."). Return in the user`s language (Uzbek or Russian).' 
+    confidence_score: {
+      type: 'number',
+      description: 'Confidence level from 0.0 to 1.0.',
     },
-    portion_breakdown: { 
-      type: 'string', 
-      description: 'Estimated breakdown of dish weight components (e.g. "Guruch: ~150g, Go`sht: ~100g, Sabzavotlar: ~50g").' 
-    }
+    notes: {
+      type: 'string',
+      description: 'Optional brief note about uncertainty. Max 200 chars.',
+    },
+    ingredients: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'List of detected key ingredients in the language of the request (Uzbek/Russian).',
+    },
+    health_advice: {
+      type: 'string',
+      description:
+        'Detailed professional dietician advice about this dish, its nutritional pros and cons, health benefits or warnings (e.g. "Taom oqsilga boy, biroq yog` miqdori ko`p..."). Return in the user`s language (Uzbek or Russian).',
+    },
+    portion_breakdown: {
+      type: 'string',
+      description:
+        'Estimated breakdown of dish weight components (e.g. "Guruch: ~150g, Go`sht: ~100g, Sabzavotlar: ~50g").',
+    },
   },
   required: [
-    'is_food', 
-    'food_name', 
-    'food_name_local', 
-    'portion_size', 
-    'calories', 
-    'protein', 
-    'fat', 
-    'carbs', 
-    'confidence_score', 
-    'notes', 
-    'ingredients', 
-    'health_advice', 
-    'portion_breakdown'
+    'is_food',
+    'food_name',
+    'food_name_local',
+    'portion_size',
+    'calories',
+    'protein',
+    'fat',
+    'carbs',
+    'confidence_score',
+    'notes',
+    'ingredients',
+    'health_advice',
+    'portion_breakdown',
   ],
   additionalProperties: false,
 } as const;
@@ -87,7 +118,8 @@ RULES:
 11. Under "portion_breakdown", list individual weight estimates of each main ingredient.
 12. Always respond with valid JSON matching the schema. No extra text.`;
 
-const USER_PROMPT = 'Analyze this food image, perform a full dietician analysis, and return a JSON object matching the required schema.';
+const USER_PROMPT =
+  'Analyze this food image, perform a full dietician analysis, and return a JSON object matching the required schema.';
 
 @Injectable()
 export class OpenAIProvider extends AIProvider {
@@ -97,14 +129,21 @@ export class OpenAIProvider extends AIProvider {
 
   constructor(private config: ConfigService) {
     super();
-    this.client = new OpenAI({ apiKey: config.get<string>('OPENAI_API_KEY') });
+    this.client = new OpenAI({
+      apiKey: config.get<string>('OPENAI_API_KEY') || 'dummy-openai-key',
+    });
     this.model = config.get<string>('OPENAI_MODEL', 'gpt-4o');
   }
 
-  async analyzeFood(buffer: Buffer, mimeType: string, locale?: string): Promise<FoodAnalysisResult> {
+  async analyzeFood(
+    buffer: Buffer,
+    mimeType: string,
+    locale?: string,
+  ): Promise<FoodAnalysisResult> {
     let rawContent: string;
 
-    const userLanguage = locale === 'ru' ? 'Russian' : locale === 'en' ? 'English' : 'Uzbek';
+    const userLanguage =
+      locale === 'ru' ? 'Russian' : locale === 'en' ? 'English' : 'Uzbek';
     const dynamicPrompt = `Analyze this food image, perform a full dietician analysis, and return a JSON object matching the required schema. IMPORTANT: All text/string fields ("food_name_local", "portion_size", "notes", "ingredients", "health_advice", "portion_breakdown") MUST be written in the following language: ${userLanguage}.`;
 
     try {
@@ -140,7 +179,9 @@ export class OpenAIProvider extends AIProvider {
 
       rawContent = response.choices[0]?.message?.content ?? '';
     } catch (err: any) {
-      this.logger.error(`OpenAI API error (${err?.status || 'unknown'}): ${err?.message || err}`);
+      this.logger.error(
+        `OpenAI API error (${err?.status || 'unknown'}): ${err?.message || err}`,
+      );
       throw new Error('AI_API_ERROR');
     }
 
